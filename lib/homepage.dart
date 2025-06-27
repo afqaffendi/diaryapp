@@ -1,18 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'calender_page.dart';
 import 'sql_helper.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  final VoidCallback toggleTheme;
+
+  const HomePage({Key? key, required this.toggleTheme}) : super(key: key);
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
+  final Map<String, String> _emojiMap = {
+    'happy': '🥰',
+    'sad': '😔',
+    'angry': '😤',
+    'excited': '🤩',
+    'tired': '😮‍💨',
+    'love': '💖',
+    'reflective': '🌙',
+    'anxious': '😰',
+    'motivated': '🔥',
+  };
+
+  String _getMoodEmoji(String feeling) {
+    return _emojiMap[feeling.toLowerCase()] ?? '📝';
+  }
+
   List<Map<String, dynamic>> _diaries = [];
   bool _isLoading = true;
-
   final TextEditingController _feelingController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
 
@@ -20,13 +40,6 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _refreshDiaries();
-  }
-
-  @override
-  void dispose() {
-    _feelingController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
   }
 
   Future<void> _refreshDiaries() async {
@@ -37,65 +50,86 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void _showForm(int? id) async {
+  void _showForm(int? id) {
     if (id != null) {
-      final existing = _diaries.firstWhere((e) => e['id'] == id);
+      final existing = _diaries.firstWhere((element) => element['id'] == id);
       _feelingController.text = existing['feeling'];
       _descriptionController.text = existing['description'];
+    } else {
+      _feelingController.clear();
+      _descriptionController.clear();
     }
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      elevation: 5,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (_) => Padding(
-        padding: EdgeInsets.only(
-          top: 25,
-          left: 20,
-          right: 20,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-        ),
+        padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
-              controller: _feelingController,
-              decoration: const InputDecoration(
-                labelText: 'Feeling',
-                border: OutlineInputBorder(),
+            Text("How are you feeling?", style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 80,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: _emojiMap.entries.map((entry) {
+                  final isSelected = _feelingController.text == entry.key;
+                  return GestureDetector(
+                    onTap: () => setState(() => _feelingController.text = entry.key),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Column(
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.teal.withOpacity(0.2) : Colors.transparent,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSelected ? Colors.teal : Colors.grey.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Text(entry.value, style: const TextStyle(fontSize: 24)),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(entry.key, style: Theme.of(context).textTheme.bodySmall),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             TextField(
               controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description',
-                border: OutlineInputBorder(),
-              ),
               maxLines: 3,
+              decoration: const InputDecoration(hintText: 'Write something...', border: OutlineInputBorder()),
             ),
-            const SizedBox(height: 20),
-            Center(
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  if (id == null) {
-                    await _addDiary();
-                  } else {
-                    await _updateDiary(id);
-                  }
-
-                  _feelingController.clear();
-                  _descriptionController.clear();
-                  if (context.mounted) Navigator.of(context).pop();
-                },
-                icon: Icon(id == null ? Icons.add : Icons.update),
-                label: Text(id == null ? 'Create Entry' : 'Update Entry'),
-              ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () async {
+                if (_feelingController.text.isEmpty || _descriptionController.text.isEmpty) {
+                  _showErrorSnackbar("Complete both fields");
+                  return;
+                }
+                if (id == null) {
+                  await SQLHelper.createDiary(_feelingController.text, _descriptionController.text);
+                } else {
+                  await SQLHelper.updateDiary(id, _feelingController.text, _descriptionController.text);
+                }
+                _refreshDiaries();
+                Navigator.pop(context);
+              },
+              icon: const Icon(Icons.check),
+              label: Text(id == null ? 'Add Entry' : 'Update Entry'),
             ),
           ],
         ),
@@ -103,133 +137,121 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Future<void> _addDiary() async {
-    final id = await SQLHelper.createDiary(
-      _feelingController.text,
-      _descriptionController.text,
-    );
-    if (id != -1) {
-      _refreshDiaries();
-    } else {
-      _showErrorSnackbar("⚠️ Database not available (Web mode)");
-    }
-  }
-
-  Future<void> _updateDiary(int id) async {
-    final result = await SQLHelper.updateDiary(
-      id,
-      _feelingController.text,
-      _descriptionController.text,
-    );
-    if (result != -1) {
-      _refreshDiaries();
-    } else {
-      _showErrorSnackbar("⚠️ Cannot update in web mode");
-    }
+  void _showErrorSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _deleteDiary(int id) async {
     await SQLHelper.deleteDiary(id);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Entry deleted!')),
-      );
-      _refreshDiaries();
-    }
+    _refreshDiaries();
   }
 
-  void _showErrorSnackbar(String msg) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  int _selectedIndex = 0;
+
+  void _onNavTap(int index) {
+    if (index == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => CalendarPage(toggleTheme: widget.toggleTheme)),
+      );
     }
+    setState(() => _selectedIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
-   return Scaffold(
-  appBar: AppBar(
-    title: const Text("📔 Awie's Diary", textAlign: TextAlign.center),
-    centerTitle: true,
-  ),
-  body: _isLoading
-      ? const Center(child: CircularProgressIndicator())
-      : _diaries.isEmpty
-          ? const Center(child: Text("No entries yet."))
-          : ListView.builder(
-              itemCount: _diaries.length,
-              itemBuilder: (context, index) {
-                final diary = _diaries[index];
-                final createdAt = diary['createdAt'];
-                String formatted = '';
-                if (createdAt != null) {
-                  try {
-                    formatted = DateFormat('d MMMM yyyy, hh:mm a')
-                        .format(DateTime.parse(createdAt));
-                  } catch (_) {}
-                }
-
-                return Card(
-                  color: Colors.teal.shade50,
-                  margin: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
-                  child: ListTile(
-                    leading: const Icon(Icons.emoji_emotions_outlined),
-                    title: Text(diary['feeling'], textAlign: TextAlign.center),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(diary['description']),
-                        const SizedBox(height: 5),
-                        Text(formatted,
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.grey)),
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () => _showForm(diary['id']),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Home", style: GoogleFonts.quicksand(fontWeight: FontWeight.w600)),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.brightness_6),
+            onPressed: widget.toggleTheme,
+          ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _diaries.isEmpty
+              ? const Center(child: Text("No entries yet."))
+              : ListView.builder(
+                  itemCount: _diaries.length,
+                  itemBuilder: (_, index) {
+                    final diary = _diaries[index];
+                    final time = DateFormat('dd MMM yyyy, hh:mm a')
+                        .format(DateTime.parse(diary['createdAt']));
+                    return Card(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      elevation: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: Colors.teal.withOpacity(0.2),
+                                  child: Text(_getMoodEmoji(diary['feeling']), style: const TextStyle(fontSize: 20)),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(diary['feeling'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                                Text(time, style: Theme.of(context).textTheme.bodySmall),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(diary['description'], style: Theme.of(context).textTheme.bodyMedium),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit, size: 20),
+                                  onPressed: () => _showForm(diary['id']),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete, size: 20),
+                                  onPressed: () => _deleteDiary(diary['id']),
+                                ),
+                              ],
+                            )
+                          ],
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () => _deleteDiary(diary['id']),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-  floatingActionButton: FloatingActionButton(
-    onPressed: () => _showForm(null),
-    child: const Icon(Icons.add),
-  ),
-  floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-  bottomNavigationBar: BottomAppBar(
-    shape: const CircularNotchedRectangle(),
-    notchMargin: 6.0,
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: <Widget>[
-        IconButton(
-          icon: const Icon(Icons.home),
-          onPressed: () {
-            // Optional: add navigation or state handling
-          },
+                      ),
+                    );
+                  },
+                ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showForm(null),
+        child: const Icon(Icons.add),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 8,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: Icon(LucideIcons.home,
+                    color: _selectedIndex == 0 ? Theme.of(context).iconTheme.color : Colors.grey),
+                onPressed: () => _onNavTap(0),
+              ),
+              IconButton(
+                icon: Icon(LucideIcons.calendar,
+                    color: _selectedIndex == 1 ? Theme.of(context).iconTheme.color : Colors.grey),
+                onPressed: () => _onNavTap(1),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(width: 48), // space for FAB
-        IconButton(
-          icon: const Icon(Icons.calendar_today),
-          onPressed: () {
-            // Optional: add calendar feature
-          },
-        ),
-      ],
-    ),
-  ),
-);
-
+      ),
+    );
   }
 }
