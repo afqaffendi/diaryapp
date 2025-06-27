@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'calender_page.dart';
+import 'calendar_page.dart'; 
 import 'sql_helper.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -151,9 +151,11 @@ class _HomePageState extends State<HomePage> {
   void _onNavTap(int index) {
     if (index == 1) {
       Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => CalendarPage(toggleTheme: widget.toggleTheme)),
-      );
+  context,
+  MaterialPageRoute(
+    builder: (_) => CalendarPage(toggleTheme: widget.toggleTheme),
+  ),
+);
     }
     setState(() => _selectedIndex = index);
   }
