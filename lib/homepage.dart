@@ -191,31 +191,27 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
 
-     drawer: Drawer(
+    drawer: Drawer(
   child: ListView(
     padding: EdgeInsets.zero,
     children: [
       DrawerHeader(
-        decoration: BoxDecoration(
-          color: Theme.of(context).appBarTheme.backgroundColor,
-        ),
-        child: Column(
+        decoration: BoxDecoration(color: Theme.of(context).primaryColor),
+        child: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             CircleAvatar(
               radius: 30,
-              backgroundColor: Colors.white,
-              child: Icon(Icons.emoji_emotions, size: 30, color: Colors.teal), // 👈 New icon
+              backgroundImage: AssetImage("assets/images/profile.png"),
             ),
             SizedBox(height: 10),
-            Text('Hello, User!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Text('user@email.com', style: TextStyle(fontSize: 14)),
+            Text("Hi, Awie 🐣", style: TextStyle(color: Colors.white, fontSize: 18)),
           ],
         ),
       ),
       ListTile(
         leading: const Icon(Icons.person),
-        title: const Text('Profile'),
+        title: const Text("Profile"),
         onTap: () {
           Navigator.pop(context);
           Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfilePage()));
@@ -223,24 +219,16 @@ class _HomePageState extends State<HomePage> {
       ),
       ListTile(
         leading: const Icon(Icons.settings),
-        title: const Text('Settings'),
+        title: const Text("Settings"),
         onTap: () {
           Navigator.pop(context);
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage()));
-        },
-      ),
-      const Divider(),
-      ListTile(
-        leading: const Icon(Icons.logout),
-        title: const Text('Logout'),
-        onTap: () {
-          Navigator.pop(context);
-
+          Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsPage(toggleTheme: widget.toggleTheme)));
         },
       ),
     ],
   ),
 ),
+
 
 
       body: _isLoading
