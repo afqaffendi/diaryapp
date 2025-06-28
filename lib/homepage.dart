@@ -4,6 +4,9 @@ import 'calendar_page.dart';
 import 'sql_helper.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'profile_page.dart';
+import 'settings_page.dart';
+
 
 class HomePage extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -188,63 +191,58 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
 
-      drawer: Drawer(
-    child: ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        DrawerHeader(
-          decoration: BoxDecoration(
-            color: Theme.of(context).appBarTheme.backgroundColor,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: Colors.teal,
-                child: Icon(Icons.person, size: 30, color: Colors.white),
-              ),
-              SizedBox(height: 10),
-              Text('Hello, User!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              Text('user@email.com', style: TextStyle(fontSize: 14)),
-            ],
-          ),
+     drawer: Drawer(
+  child: ListView(
+    padding: EdgeInsets.zero,
+    children: [
+      DrawerHeader(
+        decoration: BoxDecoration(
+          color: Theme.of(context).appBarTheme.backgroundColor,
         ),
-        ListTile(
-          leading: const Icon(Icons.person),
-          title: const Text('Profile'),
-          onTap: () {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Profile tapped")),
-            );
-          },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            CircleAvatar(
+              radius: 30,
+              backgroundColor: Colors.white,
+              child: Icon(Icons.emoji_emotions, size: 30, color: Colors.teal), // 👈 New icon
+            ),
+            SizedBox(height: 10),
+            Text('Hello, User!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('user@email.com', style: TextStyle(fontSize: 14)),
+          ],
         ),
-        ListTile(
-          leading: const Icon(Icons.settings),
-          title: const Text('Settings'),
-          onTap: () {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Settings tapped")),
-            );
-          },
-        ),
-        const Divider(),
-        ListTile(
-          leading: const Icon(Icons.logout),
-          title: const Text('Logout'),
-          onTap: () {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Logout tapped")),
-            );
-          },
-        ),
-      ],
-    ),
+      ),
+      ListTile(
+        leading: const Icon(Icons.person),
+        title: const Text('Profile'),
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfilePage()));
+        },
+      ),
+      ListTile(
+        leading: const Icon(Icons.settings),
+        title: const Text('Settings'),
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage()));
+        },
+      ),
+      const Divider(),
+      ListTile(
+        leading: const Icon(Icons.logout),
+        title: const Text('Logout'),
+        onTap: () {
+          Navigator.pop(context);
+
+        },
+      ),
+    ],
   ),
-  
+),
+
+
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _diaries.isEmpty
