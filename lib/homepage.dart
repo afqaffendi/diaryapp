@@ -50,96 +50,110 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void _showForm(int? id) {
-    if (id != null) {
-      final existing = _diaries.firstWhere((element) => element['id'] == id);
-      _feelingController.text = existing['feeling'];
-      _descriptionController.text = existing['description'];
-    } else {
-      _feelingController.clear();
-      _descriptionController.clear();
-    }
+ void _showForm(int? id) {
+  if (id != null) {
+    final existing = _diaries.firstWhere((element) => element['id'] == id);
+    _feelingController.text = existing['feeling'];
+    _descriptionController.text = existing['description'];
+  } else {
+    _feelingController.clear();
+    _descriptionController.clear();
+  }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) => Padding(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text("How are you feeling?", style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 80,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: _emojiMap.entries.map((entry) {
-                  final isSelected = _feelingController.text == entry.key;
-                  return GestureDetector(
-                    onTap: () => setState(() => _feelingController.text = entry.key),
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Column(
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: isSelected ? Colors.teal.withOpacity(0.2) : Colors.transparent,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: isSelected ? Colors.teal : Colors.grey.withOpacity(0.3),
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (_) => StatefulBuilder(
+      builder: (BuildContext modalContext, StateSetter setModalState) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            MediaQuery.of(context).viewInsets.bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("How are you feeling?", style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 80,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: _emojiMap.entries.map((entry) {
+                    final isSelected = _feelingController.text == entry.key;
+                    return GestureDetector(
+                      onTap: () => setModalState(() => _feelingController.text = entry.key),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Column(
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: isSelected ? Colors.teal.withOpacity(0.2) : Colors.transparent,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isSelected ? Colors.teal : Colors.grey.withOpacity(0.3),
+                                ),
                               ),
+                              child: Text(entry.value, style: const TextStyle(fontSize: 24)),
                             ),
-                            child: Text(entry.value, style: const TextStyle(fontSize: 24)),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(entry.key, style: Theme.of(context).textTheme.bodySmall),
-                        ],
+                            const SizedBox(height: 4),
+                            Text(entry.key, style: Theme.of(context).textTheme.bodySmall),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                }).toList(),
+                    );
+                  }).toList(),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _descriptionController,
-              maxLines: 3,
-              decoration: const InputDecoration(hintText: 'Write something...', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () async {
-                if (_feelingController.text.isEmpty || _descriptionController.text.isEmpty) {
-                  _showErrorSnackbar("Complete both fields");
-                  return;
-                }
-                if (id == null) {
-                  await SQLHelper.createDiary(_feelingController.text, _descriptionController.text);
-                } else {
-                  await SQLHelper.updateDiary(id, _feelingController.text, _descriptionController.text);
-                }
-                _refreshDiaries();
-                Navigator.pop(context);
-              },
-              icon: const Icon(Icons.check),
-              label: Text(id == null ? 'Add Entry' : 'Update Entry'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+              const SizedBox(height: 16),
+              TextField(
+                controller: _descriptionController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  hintText: 'Write something...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  if (_feelingController.text.isEmpty || _descriptionController.text.isEmpty) {
+                    _showErrorSnackbar(modalContext, "Complete both fields");
+                    return;
+                  }
+                  if (id == null) {
+                    await SQLHelper.createDiary(_feelingController.text, _descriptionController.text);
+                  } else {
+                    await SQLHelper.updateDiary(id, _feelingController.text, _descriptionController.text);
+                  }
+                  _refreshDiaries();
+                  Navigator.pop(context);
+                },
+                icon: const Icon(Icons.check),
+                label: Text(id == null ? 'Add Entry' : 'Update Entry'),
+              ),
+            ],
+          ),
+        );
+      },
+    ),
+  );
+}
 
-  void _showErrorSnackbar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-  }
+
+  void _showErrorSnackbar(BuildContext ctx, String message) {
+  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(message)));
+}
+
 
   Future<void> _deleteDiary(int id) async {
     await SQLHelper.deleteDiary(id);
@@ -173,6 +187,64 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
+
+      drawer: Drawer(
+    child: ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        DrawerHeader(
+          decoration: BoxDecoration(
+            color: Theme.of(context).appBarTheme.backgroundColor,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              CircleAvatar(
+                radius: 30,
+                backgroundColor: Colors.teal,
+                child: Icon(Icons.person, size: 30, color: Colors.white),
+              ),
+              SizedBox(height: 10),
+              Text('Hello, User!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('user@email.com', style: TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.person),
+          title: const Text('Profile'),
+          onTap: () {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Profile tapped")),
+            );
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.settings),
+          title: const Text('Settings'),
+          onTap: () {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Settings tapped")),
+            );
+          },
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.logout),
+          title: const Text('Logout'),
+          onTap: () {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Logout tapped")),
+            );
+          },
+        ),
+      ],
+    ),
+  ),
+  
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _diaries.isEmpty
