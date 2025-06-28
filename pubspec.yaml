@@ -64,7 +64,13 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/logo.gif
-    - assets/images/mood-unscreen.gif
+    - assets/images/cat.gif
+    - assets/images/angry.gif
+    - assets/images/anxious.gif
+    - assets/images/neutral.gif
+    - assets/images/sad.gif
+    - assets/images/happy.gif
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

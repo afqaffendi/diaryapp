@@ -17,8 +17,24 @@ class _ProfilePageState extends State<ProfilePage> {
   String _username = "Afiq Affendi";
   final TextEditingController _nameController = TextEditingController();
   int _entryCount = 0;
-  String _topMood = "🥰";
   String _latestDate = "-";
+  String _topMoodName = "happy";
+
+  final Map<String, String> moodGifs = {
+    'happy': 'assets/images/happy.gif',
+    'sad': 'assets/images/sad.gif',
+    'angry': 'assets/images/angry.gif',
+    'anxious': 'assets/images/anxious.gif',
+    'neutral': 'assets/images/neutral.gif',
+  };
+
+  final Map<String, String> moodQuotes = {
+    'happy': 'Keep smiling. Life is beautiful.',
+    'sad': 'It’s okay to feel down. Brighter days are coming.',
+    'angry': 'Take a deep breath. Peace begins with you.',
+    'anxious': 'This too shall pass. Breathe.',
+    'neutral': 'You’re on fire. Keep moving.',
+  };
 
   @override
   void initState() {
@@ -26,34 +42,42 @@ class _ProfilePageState extends State<ProfilePage> {
     _loadStats();
   }
 
-  Future<void> _loadStats() async {
-    final diaries = await SQLHelper.getDiaries();
-    final moodCount = <String, int>{};
-    final directory = await getApplicationDocumentsDirectory();
-    final path = '${directory.path}/profile.png';
-    final file = File(path);
+Future<void> _loadStats() async {
+  final diaries = await SQLHelper.getDiaries();
+  final moodCount = <String, int>{};
+  final directory = await getApplicationDocumentsDirectory();
+  final path = '${directory.path}/profile.png';
+  final file = File(path);
 
-    if (await file.exists()) {
-      setState(() {
-        _profileImage = file;
-      });
-    }
-
-    for (var entry in diaries) {
-      moodCount[entry['feeling']] = (moodCount[entry['feeling']] ?? 0) + 1;
-    }
-
-    String mostFrequentMood = moodCount.entries
-        .fold('', (prev, e) => e.value > (moodCount[prev] ?? 0) ? e.key : prev);
-
+  if (await file.exists()) {
     setState(() {
-      _entryCount = diaries.length;
-      _topMood = mostFrequentMood;
-      _latestDate = diaries.isNotEmpty
-          ? diaries.last['createdAt'].toString().split('T').first
-          : "-";
+      _profileImage = file;
     });
   }
+
+  for (var entry in diaries) {
+    final mood = entry['feeling'].toString().toLowerCase();
+    moodCount[mood] = (moodCount[mood] ?? 0) + 1;
+  }
+
+  String mostFrequent = '';
+  int highestCount = 0;
+  moodCount.forEach((mood, count) {
+    if (count > highestCount) {
+      mostFrequent = mood;
+      highestCount = count;
+    }
+  });
+
+  setState(() {
+    _entryCount = diaries.length;
+    _topMoodName = mostFrequent.isNotEmpty ? mostFrequent : 'happy';
+    _latestDate = diaries.isNotEmpty
+        ? diaries.last['createdAt'].toString().split('T').first
+        : "-";
+  });
+}
+
 
   Future<void> _pickImage() async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -120,52 +144,56 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        child: Column(
-          children: [
-            GestureDetector(
-              onTap: _editNameDialog,
-              child: Column(
-                children: [
-                  Stack(
-                    alignment: Alignment.bottomRight,
-                    children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundImage: _profileImage != null
-                            ? FileImage(_profileImage!)
-                            : const AssetImage("assets/images/profile.png") as ImageProvider,
-                      ),
-                      GestureDetector(
-                        onTap: _pickImage,
-                        child: CircleAvatar(
-                          radius: 16,
-                          backgroundColor: Colors.teal,
-                          child: const Icon(Icons.edit, size: 16, color: Colors.white),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              GestureDetector(
+                onTap: _editNameDialog,
+                child: Column(
+                  children: [
+                    Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundImage: _profileImage != null
+                              ? FileImage(_profileImage!)
+                              : const AssetImage("assets/images/profile.png") as ImageProvider,
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    _username,
-                    style: GoogleFonts.quicksand(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                        GestureDetector(
+                          onTap: _pickImage,
+                          child: CircleAvatar(
+                            radius: 16,
+                            backgroundColor: Colors.teal,
+                            child: const Icon(Icons.edit, size: 16, color: Colors.white),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Tap to edit",
-                    style: GoogleFonts.quicksand(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
+                    const SizedBox(height: 10),
+                    Text(
+                      _username,
+                      style: GoogleFonts.quicksand(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Tap to edit",
+                      style: GoogleFonts.quicksand(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 30),
-            _buildInfoTile("Total Diary Entries", "$_entryCount"),
-            _buildInfoTile("Most Frequent Mood", _topMood),
-            _buildInfoTile("Latest Entry", _latestDate),
-          ],
+              const SizedBox(height: 30),
+              _buildInfoTile("Total Diary Entries", "$_entryCount"),
+              _buildInfoTile("Latest Entry", _latestDate),
+              const SizedBox(height: 30),
+              _buildMoodDisplay(),
+            ],
+          ),
         ),
       ),
     );
@@ -178,8 +206,47 @@ class _ProfilePageState extends State<ProfilePage> {
       elevation: 2,
       child: ListTile(
         title: Text(title, style: GoogleFonts.quicksand(fontSize: 14)),
-        trailing: Text(value, style: GoogleFonts.quicksand(fontSize: 14, fontWeight: FontWeight.w500)),
+        trailing: Text(value,
+            style: GoogleFonts.quicksand(fontSize: 14, fontWeight: FontWeight.w500)),
       ),
     );
   }
+
+Widget _buildMoodDisplay() {
+  final gifPath = moodGifs[_topMoodName] ?? 'assets/gifs/happy.gif';
+  final quote = moodQuotes[_topMoodName] ?? '';
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  final quoteColor = isDark ? Colors.grey[300] : Colors.grey[800];
+
+  return Column(
+    children: [
+      Text(
+        "Your Current Vibe",
+        style: GoogleFonts.quicksand(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      const SizedBox(height: 12),
+      ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Image.asset(
+          gifPath,
+          height: 140,
+          fit: BoxFit.cover,
+        ),
+      ),
+      const SizedBox(height: 14),
+      Text(
+        quote,
+        textAlign: TextAlign.center,
+        style: GoogleFonts.quicksand(
+          fontSize: 14,
+          fontStyle: FontStyle.italic,
+          color: quoteColor,
+        ),
+      ),
+    ],
+  );
+}
 }

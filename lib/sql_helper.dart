@@ -19,7 +19,7 @@ class SQLHelper {
       return null;
     }
     return sql.openDatabase(
-      'diaryawie.db',
+      'diary.db',
       version: 1,
       onCreate: (sql.Database db, int version) async {
         await createTables(db);

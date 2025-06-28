@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'calendar_page.dart';
@@ -16,15 +17,12 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final Map<String, String> _emojiMap = {
-    'happy': '🥰',
-    'sad': '😔',
-    'angry': '😤',
-    'excited': '🤩',
-    'tired': '😮‍💨',
-    'love': '💖',
-    'reflective': '🌙',
+    
+    'happy': '😊',
+    'sad': '😢',
+    'angry': '😠',
     'anxious': '😰',
-    'motivated': '🔥',
+    'neutral': '😐',
   };
 
   String _getMoodEmoji(String feeling) => _emojiMap[feeling.toLowerCase()] ?? '📝';
@@ -48,140 +46,144 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-void _showForm(int? id) {
+  void _showForm(int? id) {
+    if (id != null) {
+      final existing = _diaries.firstWhere((e) => e['id'] == id);
+      _feelingController.text = existing['feeling'];
+      _descriptionController.text = existing['description'];
+    } else {
+      _feelingController.clear();
+      _descriptionController.clear();
+    }
 
-
-  if (id != null) {
-    final existing = _diaries.firstWhere((e) => e['id'] == id);
-    _feelingController.text = existing['feeling'];
-    _descriptionController.text = existing['description'];
-  } else {
-    _feelingController.clear();
-    _descriptionController.clear();
-  }
-
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Theme.of(context).cardColor,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (_) => StatefulBuilder(
-      builder: (modalContext, setModalState) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (modalContext, setModalState) {
+          return Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.topCenter,
             children: [
-              // ✅ Add your floating-style GIF
-              SizedBox(
-                height: 90,
-                child: Image.asset(
-                  'assets/imagesmood-unscreen.gif',
-                  fit: BoxFit.contain,
+              Padding(
+                padding: EdgeInsets.only(
+                  top: 70,
+                  left: 16,
+                  right: 16,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 16,
                 ),
-              ),
-              const SizedBox(height: 8),
-
-              Text(
-                "How are you feeling?",
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              SizedBox(
-                height: 80,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: _emojiMap.entries.map((entry) {
-                    final selected = _feelingController.text == entry.key;
-                    return GestureDetector(
-                      onTap: () =>
-                          setModalState(() => _feelingController.text = entry.key),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: selected
-                                ? Colors.teal
-                                : const Color(0xFFD3D3D3).withOpacity(0.3),
-                            width: 2,
-                          ),
-                          color: selected
-                              ? Colors.teal.withOpacity(0.1)
-                              : Colors.transparent,
-                        ),
-                        padding: const EdgeInsets.all(12),
-                        child: Center(
-                          child: Text(entry.value,
-                              style: const TextStyle(fontSize: 24)),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "How are you feeling?",
+                        style: GoogleFonts.playfairDisplay(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              TextField(
-                controller: _descriptionController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: 'Write something...',
-                  filled: true,
-                  fillColor: Theme.of(context).cardColor,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 80,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: _emojiMap.entries.map((entry) {
+                            final selected = _feelingController.text == entry.key;
+                            return GestureDetector(
+                              onTap: () => setModalState(() => _feelingController.text = entry.key),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                margin: const EdgeInsets.symmetric(horizontal: 8),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: selected
+                                        ? Colors.teal
+                                        : const Color(0xFFD3D3D3).withOpacity(0.3),
+                                    width: 2,
+                                  ),
+                                  color: selected
+                                      ? Colors.teal.withOpacity(0.1)
+                                      : Colors.transparent,
+                                ),
+                                padding: const EdgeInsets.all(12),
+                                child: Center(
+                                  child: Text(entry.value,
+                                      style: const TextStyle(fontSize: 24)),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _descriptionController,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          hintText: 'Write something...',
+                          filled: true,
+                          fillColor: Theme.of(context).cardColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                        onPressed: () async {
+                          if (_feelingController.text.isEmpty ||
+                              _descriptionController.text.isEmpty) {
+                            _showErrorSnackbar(modalContext, "Complete both fields");
+                            return;
+                          }
+                          if (id == null) {
+                            await SQLHelper.createDiary(
+                                _feelingController.text, _descriptionController.text);
+                          } else {
+                            await SQLHelper.updateDiary(
+                                id, _feelingController.text, _descriptionController.text);
+                          }
+                          _refreshDiaries();
+                          Navigator.pop(context);
+                        },
+                        icon: const Icon(Icons.check),
+                        label: Text(id == null ? 'Add Entry' : 'Update Entry'),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              Positioned(
+                top: -10,
+                child: SizedBox(
+                  height: 90,
+                  child: Image.asset(
+                    'assets/images/cat.gif', 
+                    fit: BoxFit.contain,
+                  ),
                 ),
-                onPressed: () async {
-                  if (_feelingController.text.isEmpty ||
-                      _descriptionController.text.isEmpty) {
-                    _showErrorSnackbar(modalContext, "Complete both fields");
-                    return;
-                  }
-                  if (id == null) {
-                    await SQLHelper.createDiary(
-                        _feelingController.text, _descriptionController.text);
-                  } else {
-                    await SQLHelper.updateDiary(
-                        id, _feelingController.text, _descriptionController.text);
-                  }
-                  _refreshDiaries();
-                  Navigator.pop(context);
-                },
-                icon: const Icon(Icons.check),
-                label: Text(id == null ? 'Add Entry' : 'Update Entry'),
               ),
             ],
-          ),
-        );
-      },
-    ),
-  );
-}
-
-
+          );
+        },
+      ),
+    );
+  }
 
   void _showErrorSnackbar(BuildContext ctx, String message) {
     ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(message)));
@@ -362,10 +364,16 @@ void _showForm(int? id) {
                     },
                   ),
                 ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.teal,
-        onPressed: () => _showForm(null),
-        child: const Icon(Icons.add),
+      floatingActionButton: SizedBox(
+        height: 60,
+        width: 60,
+        child: FloatingActionButton(
+          backgroundColor: Colors.teal,
+          elevation: 8,
+          shape: const CircleBorder(),
+          onPressed: () => _showForm(null),
+          child: const Icon(Icons.add, size: 30),
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(

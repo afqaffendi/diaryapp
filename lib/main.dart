@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'splash_page.dart'; // changed from homepage.dart
+import 'splash_page.dart';
 
 void main() {
   runApp(const MyApp());
