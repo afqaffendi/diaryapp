@@ -12,7 +12,7 @@ class SettingsPage extends StatelessWidget {
           SwitchListTile(
             value: Theme.of(context).brightness == Brightness.dark,
             onChanged: (_) {
-              // Let user know to use the home page toggle for now
+
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text("Use the theme toggle on Home Page")),
               );
@@ -39,7 +39,7 @@ class SettingsPage extends StatelessWidget {
                     TextButton(
                       onPressed: () {
                         Navigator.pop(context);
-                        // TODO: Add diary deletion logic here
+
                       },
                       child: const Text("Reset"),
                     ),
