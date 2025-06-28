@@ -72,81 +72,84 @@ class _HomePageState extends State<HomePage> {
     ),
     builder: (_) => StatefulBuilder(
       builder: (BuildContext modalContext, StateSetter setModalState) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            16,
-            16,
-            16,
-            MediaQuery.of(context).viewInsets.bottom + 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text("How are you feeling?", style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 80,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: _emojiMap.entries.map((entry) {
-                    final isSelected = _feelingController.text == entry.key;
-                    return GestureDetector(
-                      onTap: () => setModalState(() => _feelingController.text = entry.key),
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Column(
-                          children: [
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: isSelected ? Colors.teal.withOpacity(0.2) : Colors.transparent,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: isSelected ? Colors.teal : Colors.grey.withOpacity(0.3),
-                                ),
-                              ),
-                              child: Text(entry.value, style: const TextStyle(fontSize: 24)),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(entry.key, style: Theme.of(context).textTheme.bodySmall),
-                          ],
+        return AnimatedContainer(
+  duration: const Duration(milliseconds: 300),
+  curve: Curves.easeOut,
+  padding: EdgeInsets.fromLTRB(
+    16,
+    16,
+    16,
+    MediaQuery.of(context).viewInsets.bottom + 16,
+  ),
+  child: Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text("How are you feeling?", style: Theme.of(context).textTheme.titleMedium),
+      const SizedBox(height: 12),
+      SizedBox(
+        height: 80,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          children: _emojiMap.entries.map((entry) {
+            final isSelected = _feelingController.text == entry.key;
+            return GestureDetector(
+              onTap: () => setModalState(() => _feelingController.text = entry.key),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                child: Column(
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.teal.withOpacity(0.2) : Colors.transparent,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected ? Colors.teal : Colors.grey.withOpacity(0.3),
                         ),
                       ),
-                    );
-                  }).toList(),
+                      child: Text(entry.value, style: const TextStyle(fontSize: 24)),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(entry.key, style: Theme.of(context).textTheme.bodySmall),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _descriptionController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  hintText: 'Write something...',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  if (_feelingController.text.isEmpty || _descriptionController.text.isEmpty) {
-                    _showErrorSnackbar(modalContext, "Complete both fields");
-                    return;
-                  }
-                  if (id == null) {
-                    await SQLHelper.createDiary(_feelingController.text, _descriptionController.text);
-                  } else {
-                    await SQLHelper.updateDiary(id, _feelingController.text, _descriptionController.text);
-                  }
-                  _refreshDiaries();
-                  Navigator.pop(context);
-                },
-                icon: const Icon(Icons.check),
-                label: Text(id == null ? 'Add Entry' : 'Update Entry'),
-              ),
-            ],
-          ),
-        );
+            );
+          }).toList(),
+        ),
+      ),
+      const SizedBox(height: 16),
+      TextField(
+        controller: _descriptionController,
+        maxLines: 3,
+        decoration: const InputDecoration(
+          hintText: 'Write something...',
+          border: OutlineInputBorder(),
+        ),
+      ),
+      const SizedBox(height: 16),
+      ElevatedButton.icon(
+        onPressed: () async {
+          if (_feelingController.text.isEmpty || _descriptionController.text.isEmpty) {
+            _showErrorSnackbar(modalContext, "Complete both fields");
+            return;
+          }
+          if (id == null) {
+            await SQLHelper.createDiary(_feelingController.text, _descriptionController.text);
+          } else {
+            await SQLHelper.updateDiary(id, _feelingController.text, _descriptionController.text);
+          }
+          _refreshDiaries();
+          Navigator.pop(context);
+        },
+        icon: const Icon(Icons.check),
+        label: Text(id == null ? 'Add Entry' : 'Update Entry'),
+      ),
+    ],
+  ),
+);
+
       },
     ),
   );
@@ -191,43 +194,83 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
 
-    drawer: Drawer(
+  drawer: Drawer(
+  backgroundColor: Theme.of(context).brightness == Brightness.dark
+      ? const Color(0xFF2C2C2C)
+      : const Color(0xFFFFF5F0),
   child: ListView(
     padding: EdgeInsets.zero,
     children: [
       DrawerHeader(
-        decoration: BoxDecoration(color: Theme.of(context).primaryColor),
-        child: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF3A3B3C)
+              : const Color.fromARGB(255, 255, 233, 233),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             CircleAvatar(
               radius: 30,
               backgroundImage: AssetImage("assets/images/profile.png"),
             ),
-            SizedBox(height: 10),
-            Text("Hi, Awie 🐣", style: TextStyle(color: Colors.white, fontSize: 18)),
+            const SizedBox(width: 12),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Hi, Afiq!",
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  "Welcome back!",
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
       ListTile(
-        leading: const Icon(Icons.person),
-        title: const Text("Profile"),
+        leading: Icon(Icons.person, color: Theme.of(context).iconTheme.color),
+        title: Text(
+          "Profile",
+          style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+        ),
         onTap: () {
           Navigator.pop(context);
           Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfilePage()));
         },
       ),
       ListTile(
-        leading: const Icon(Icons.settings),
-        title: const Text("Settings"),
+        leading: Icon(Icons.settings, color: Theme.of(context).iconTheme.color),
+        title: Text(
+          "Settings",
+          style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+        ),
         onTap: () {
           Navigator.pop(context);
-          Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsPage(toggleTheme: widget.toggleTheme)));
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SettingsPage(toggleTheme: widget.toggleTheme),
+            ),
+          );
         },
       ),
     ],
   ),
 ),
+
+
 
 
 

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'homepage.dart';
+import 'dart:async';
+import 'homepage.dart'; 
 
 class SplashPage extends StatefulWidget {
   final VoidCallback toggleTheme;
-
-  const SplashPage({super.key, required this.toggleTheme});
+  const SplashPage({Key? key, required this.toggleTheme}) : super(key: key);
 
   @override
   State<SplashPage> createState() => _SplashPageState();
@@ -33,18 +33,19 @@ class _SplashPageState extends State<SplashPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-
+            
+            //logo
             Image.asset(
-              'assets/images/logo.png', 
+              'assets/images/logo.png',
               height: 120,
             ),
-            const SizedBox(height: 24),
-            const CircularProgressIndicator(), 
-            const SizedBox(height: 16),
-            const Text(
-              "Welcome to Afiq's Diary ✨",
-              style: TextStyle(fontSize: 18),
+            const SizedBox(height: 20),
+            Text(
+              "Dear Diary",
+              style: Theme.of(context).textTheme.headlineSmall,
             ),
+            const SizedBox(height: 20),
+            const CircularProgressIndicator(),
           ],
         ),
       ),
