@@ -38,10 +38,23 @@ class _CalendarPageState extends State<CalendarPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF9F9F9);
+
     return Scaffold(
+      backgroundColor: bgColor,
       appBar: AppBar(
-        title: Text("Calendar", style: GoogleFonts.quicksand(fontWeight: FontWeight.w600)),
+        backgroundColor: bgColor,
+        elevation: 0,
         centerTitle: true,
+        title: Text(
+          "Calendar",
+          style: GoogleFonts.playfairDisplay(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.brightness_6),
@@ -51,36 +64,107 @@ class _CalendarPageState extends State<CalendarPage> {
       ),
       body: Column(
         children: [
-          TableCalendar(
-            focusedDay: _focusedDay,
-            firstDay: DateTime(2000),
-            lastDay: DateTime(2100),
-            calendarFormat: CalendarFormat.month,
-            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-            onDaySelected: (selected, focused) {
-              setState(() {
-                _selectedDay = selected;
-                _focusedDay = focused;
-              });
-              _fetchEntries();
-            },
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: Container(
+                color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+                child: TableCalendar(
+                  focusedDay: _focusedDay,
+                  firstDay: DateTime(2000),
+                  lastDay: DateTime(2100),
+                  calendarFormat: CalendarFormat.month,
+                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                  onDaySelected: (selected, focused) {
+                    setState(() {
+                      _selectedDay = selected;
+                      _focusedDay = focused;
+                    });
+                    _fetchEntries();
+                  },
+                  headerStyle: HeaderStyle(
+                    titleTextStyle: GoogleFonts.quicksand(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                    formatButtonVisible: false,
+                    titleCentered: true,
+                    leftChevronIcon: Icon(Icons.chevron_left, color: Theme.of(context).iconTheme.color),
+                    rightChevronIcon: Icon(Icons.chevron_right, color: Theme.of(context).iconTheme.color),
+                  ),
+                  calendarStyle: CalendarStyle(
+                    todayDecoration: BoxDecoration(
+                      color: Colors.teal.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    selectedDecoration: BoxDecoration(
+                      color: Colors.teal,
+                      shape: BoxShape.circle,
+                    ),
+                    selectedTextStyle: const TextStyle(color: Colors.white),
+                    defaultTextStyle: GoogleFonts.quicksand(),
+                    weekendTextStyle: GoogleFonts.quicksand(color: Colors.redAccent),
+                  ),
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 10),
           Expanded(
             child: _entries.isEmpty
-                ? const Center(child: Text("No diary for selected date."))
+                ? Center(
+                    child: Text(
+                      "No diary for selected date.",
+                      style: GoogleFonts.quicksand(),
+                    ),
+                  )
                 : ListView.builder(
                     itemCount: _entries.length,
                     itemBuilder: (_, index) {
                       final entry = _entries[index];
-                      return ListTile(
-                        title: Text(entry['feeling']),
-                        subtitle: Text(entry['description']),
-                        trailing: Text(DateFormat('hh:mm a').format(DateTime.parse(entry['createdAt']))),
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Card(
+                          color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  entry['feeling'],
+                                  style: GoogleFonts.quicksand(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  entry['description'],
+                                  style: GoogleFonts.quicksand(fontSize: 14),
+                                ),
+                                const SizedBox(height: 8),
+                                Align(
+                                  alignment: Alignment.bottomRight,
+                                  child: Text(
+                                    DateFormat('hh:mm a').format(DateTime.parse(entry['createdAt'])),
+                                    style: GoogleFonts.quicksand(fontSize: 12, color: Colors.grey),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       );
                     },
                   ),
-          )
+          ),
         ],
       ),
     );

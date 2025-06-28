@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'homepage.dart'; 
+import 'homepage.dart';
 
 class SplashPage extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -27,25 +27,22 @@ class _SplashPageState extends State<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFFFF9F5);
+
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: bgColor,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            
-            //logo
+            // Logo
             Image.asset(
-              'assets/images/logo.png',
-              height: 120,
+              'assets/images/logo.gif',
+              height: 420,
+              width: 460,
             ),
-            const SizedBox(height: 20),
-            Text(
-              "Dear Diary",
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 20),
-            const CircularProgressIndicator(),
+            const SizedBox(height: 24),
           ],
         ),
       ),
