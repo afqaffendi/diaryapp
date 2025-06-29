@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'homepage.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SplashPage extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -14,15 +15,70 @@ class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
+    _checkFirstTime();
+  }
 
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => HomePage(toggleTheme: widget.toggleTheme),
+  Future<void> _checkFirstTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasName = prefs.containsKey('username');
+
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!hasName) {
+      _showNameDialog();
+    } else {
+      _goToHome();
+    }
+  }
+
+  void _goToHome() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HomePage(toggleTheme: widget.toggleTheme),
+      ),
+    );
+  }
+
+  void _showNameDialog() {
+    final TextEditingController _nameController = TextEditingController();
+
+    showDialog(
+      barrierDismissible: false,
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text("Welcome!", style: GoogleFonts.playfairDisplay(fontSize: 22)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("What should we call you?", style: GoogleFonts.quicksand(fontSize: 16)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(hintText: "Enter your name"),
+            ),
+          ],
         ),
-      );
-    });
+        actions: [
+          TextButton(
+            onPressed: () {
+              if (_nameController.text.trim().isEmpty) return;
+              _saveNameAndContinue(_nameController.text.trim());
+            },
+            child: Text("Let's Go", style: GoogleFonts.quicksand()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveNameAndContinue(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('username', name);
+    if (!mounted) return;
+    Navigator.pop(context); // close dialog
+    _goToHome();
   }
 
   @override
@@ -36,12 +92,7 @@ class _SplashPageState extends State<SplashPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Logo
-            Image.asset(
-              'assets/images/logo.gif',
-              height: 420,
-              width: 460,
-            ),
+            Image.asset('assets/images/logo.gif', height: 420, width: 460),
             const SizedBox(height: 24),
           ],
         ),

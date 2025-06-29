@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'splash_page.dart';
 
+
 void main() {
   runApp(const MyApp());
 }
@@ -29,22 +30,22 @@ class _MyAppState extends State<MyApp> {
       themeMode: _themeMode,
       theme: ThemeData(
         brightness: Brightness.light,
-        scaffoldBackgroundColor: const Color(0xFFEBFFF5),
-        cardColor: const Color(0xFFF8E8E9),
-        appBarTheme: const AppBarTheme(backgroundColor: Color(0xFFF8E8E9)),
-        iconTheme: const IconThemeData(color: Color(0xFF7CAE9E)),
+        scaffoldBackgroundColor: Color(0xFFFDAD4CF),
+        cardColor: Color(0xFFFDAD4CF),
+        appBarTheme: const AppBarTheme(backgroundColor: Color(0xFFF1B1E21)),
+        iconTheme: const IconThemeData(color:   Color(0xFFF1B1E21)),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: Color(0xFFFEC0B3),
+          backgroundColor:Color(0xFFF1B1E21),
         ),
       ),
       darkTheme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF1F2A26),
-        cardColor: const Color(0xFF3A3B3C),
-        appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF3A3B3C)),
-        iconTheme: const IconThemeData(color: Color(0xFFA3D7CA)),
+        scaffoldBackgroundColor: const Color(0xFFF1B1E21),
+        cardColor: const  Color(0xFFF1B1E21),
+        appBarTheme: const AppBarTheme(backgroundColor: Color(0xFFF1B1E21)),
+        iconTheme: const IconThemeData(color: Color(0xFFFDAD4CF)),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: Color(0xFFD29C91),
+          backgroundColor: Color(0xFFFDAD4CF),
         ),
       ),
       home: SplashPage(toggleTheme: _toggleTheme),
