@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'sql_helper.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'theme_provider.dart';
 
 class SettingsPage extends StatefulWidget {
   final VoidCallback toggleTheme;
-
   const SettingsPage({Key? key, required this.toggleTheme}) : super(key: key);
 
   @override
@@ -13,6 +14,25 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool _visible = false;
+
+  final List<Color> _colorChoices = [
+  Color(0xFFF1B1E21), // Deep Red
+  Color(0xFFFDAD4CF), // Soft Peach
+  Color(0xFFC97B63),  // Blush Nude
+  Color(0xFF3D5A80),  // Ocean Blue
+  Color(0xFF6A994E),  // Sage Green
+  Color(0xFF9B5DE5),  // Violet Purple
+  Color(0xFF212529),  // Dark Grey
+  Color(0xFFFFC300),  // Bright Yellow
+  Color(0xFFFF6F61),  // Coral Pink
+  Color(0xFF00A896),  // Calm Teal
+  Color(0xFF4A4E69),  // Dusty Indigo
+  Color(0xFFE07A5F),  // Clay Orange
+  Color(0xFFF0A6CA),  // Bubblegum Pink
+  Color(0xFF7B2CBF),  // Rich Lavender
+  Color(0xFF2A9D8F),  // Jungle Green
+  Color(0xFFB5838D),  // Faded Rose
+  ];
 
   @override
   void initState() {
@@ -62,10 +82,16 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  bool isDarkColor(Color color) {
+    return color.computeLuminance() < 0.5;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF1B1E21) : const Color(0xFFDAD4CF);
+    final theme = Theme.of(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bgColor = theme.scaffoldBackgroundColor;
     final borderColor = isDark ? Colors.white : const Color(0xFF1B1E21);
 
     return Scaffold(
@@ -79,7 +105,7 @@ class _SettingsPageState extends State<SettingsPage> {
           style: GoogleFonts.playfairDisplay(
             fontSize: 22,
             fontWeight: FontWeight.w600,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
+            color: theme.textTheme.bodyLarge?.color,
           ),
         ),
       ),
@@ -106,6 +132,43 @@ class _SettingsPageState extends State<SettingsPage> {
                     textColor: Colors.redAccent,
                     borderColor: borderColor,
                   ),
+                  const SizedBox(height: 24),
+                  Text(
+                    "Choose Accent Color",
+                    style: GoogleFonts.quicksand(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+  spacing: 12,
+  runSpacing: 12,
+  children: _colorChoices.map((color) {
+    final isSelected = themeProvider.accentColor.value == color.value;
+    final contrastBorder = color.computeLuminance() < 0.5 ? Colors.white : Colors.black;
+
+    return GestureDetector(
+      onTap: () => themeProvider.setAccentColor(color),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isSelected
+                ? contrastBorder.withOpacity(0.8)
+                : contrastBorder.withOpacity(0.3),
+            width: isSelected ? 3.2 : 1.2,
+          ),
+        ),
+        child: isSelected
+            ? Icon(Icons.check, color: contrastBorder, size: 20)
+            : null,
+      ),
+    );
+  }).toList(),
+),
+
                 ],
               )
             : const SizedBox(),

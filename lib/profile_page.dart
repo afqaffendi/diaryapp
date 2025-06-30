@@ -144,30 +144,28 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor =
-        isDark ? const Color(0xFF1B1E21) : const Color(0xFFDAD4CF);
+    final theme = Theme.of(context);
+    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: bgColor,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
+        centerTitle: true,
         title: Text(
           "Profile",
           style: GoogleFonts.playfairDisplay(
             fontSize: 22,
             fontWeight: FontWeight.w600,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
+            color: textColor,
           ),
         ),
-        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: SingleChildScrollView(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               GestureDetector(
                 onTap: _editNameDialog,
@@ -187,8 +185,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           onTap: _pickImage,
                           child: CircleAvatar(
                             radius: 16,
-                            backgroundColor:
-                                const Color.fromARGB(255, 63, 63, 63),
+                            backgroundColor: Colors.grey[800],
                             child: const Icon(Icons.edit,
                                 size: 16, color: Colors.white),
                           ),
@@ -196,21 +193,13 @@ class _ProfilePageState extends State<ProfilePage> {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    Text(
-                      _username,
-                      style: GoogleFonts.quicksand(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    Text(_username,
+                        style: GoogleFonts.quicksand(
+                            fontSize: 18, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
-                    Text(
-                      "Tap to edit",
-                      style: GoogleFonts.quicksand(
-                        fontSize: 12,
-                        color: const Color.fromARGB(255, 55, 55, 55),
-                      ),
-                    ),
+                    Text("Tap to edit",
+                        style: GoogleFonts.quicksand(
+                            fontSize: 12, color: Colors.grey)),
                   ],
                 ),
               ),
@@ -227,56 +216,46 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildInfoTile(String title, String value) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor =
-        isDark ? const Color(0xFF1B1E21) : const Color(0xFFDAD4CF);
+    final theme = Theme.of(context);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       decoration: BoxDecoration(
-        color: cardColor,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFFDAD4CF) : const Color(0xFF1B1E21),
-          width: 2.6,
+          color: theme.brightness == Brightness.dark ? const Color(0xFFDAD4CF) : const Color(0xFF1B1E21),
+          width: 2.5,
         ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: GoogleFonts.quicksand(fontSize: 18)),
+          Text(title, style: GoogleFonts.quicksand(fontSize: 16)),
           Text(value,
               style: GoogleFonts.quicksand(
-                  fontSize: 18, fontWeight: FontWeight.w500)),
+                  fontSize: 16, fontWeight: FontWeight.w600)),
         ],
       ),
     );
   }
 
   Widget _buildMoodDisplay() {
+    final theme = Theme.of(context);
     final gifPath = moodGifs[_topMoodName] ?? 'assets/images/happy.gif';
     final quote = moodQuotes[_topMoodName] ?? '';
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final quoteColor = isDark ? Colors.grey[300] : Colors.grey[800];
+    final textColor = theme.textTheme.bodyMedium?.color;
 
     return Column(
       children: [
-        Text(
-          "Most Frequent Mood",
-          style: GoogleFonts.quicksand(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        Text("Most Frequent Mood",
+            style: GoogleFonts.quicksand(
+                fontSize: 18, fontWeight: FontWeight.w600)),
         const SizedBox(height: 12),
         ClipRRect(
           borderRadius: BorderRadius.circular(18),
-          child: Image.asset(
-            gifPath,
-            height: 140,
-            fit: BoxFit.cover,
-          ),
+          child: Image.asset(gifPath, height: 140, fit: BoxFit.cover),
         ),
         const SizedBox(height: 14),
         Text(
@@ -285,7 +264,7 @@ class _ProfilePageState extends State<ProfilePage> {
           style: GoogleFonts.quicksand(
             fontSize: 14,
             fontStyle: FontStyle.italic,
-            color: quoteColor,
+            color: textColor?.withOpacity(0.75),
           ),
         ),
       ],
