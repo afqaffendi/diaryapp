@@ -1,25 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'theme_provider.dart';
 import 'user_data_provider.dart';
 import 'splash_page.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'lock_screen.dart';
 import 'notification_service.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'pin_lock_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // Initialize SharedPreferences early to avoid delays
     final prefs = await SharedPreferences.getInstance();
-
-    // Initialize local notifications
     await NotificationService.initialize();
 
-    // Optionally schedule a daily reminder (if enabled)
-    final reminderEnabled = prefs.getBool('reminder_enabled') ?? true;
-    if (reminderEnabled) {
+    if (prefs.getBool('reminder_enabled') ?? true) {
       await NotificationService.scheduleDailyReminder();
     }
   } catch (e) {
@@ -39,6 +37,16 @@ Future<void> main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
+  Future<bool> _shouldShowLockScreen() async {
+    final prefs = await SharedPreferences.getInstance();
+    final pinEnabled = prefs.getBool('pin_enabled') ?? false;
+    if (!pinEnabled) return false;
+
+    const storage = FlutterSecureStorage();
+    final savedPin = await storage.read(key: 'app_pin');
+    return savedPin != null && savedPin.isNotEmpty;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,9 +104,37 @@ class MyApp extends StatelessWidget {
               onSurface: Colors.white70,
             ),
           ),
-          home: SplashPage(toggleTheme: themeProvider.toggleTheme),
+home: FutureBuilder<SharedPreferences>(
+  future: SharedPreferences.getInstance(),
+  builder: (context, snapshot) {
+    if (!snapshot.hasData) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final prefs = snapshot.data!;
+    final pinEnabled = prefs.getBool('pin_enabled') ?? false;
+
+    if (pinEnabled) {
+      return LockScreen(
+        onUnlock: () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SplashPage(toggleTheme: themeProvider.toggleTheme),
+            ),
+          );
+        },
+      );
+    } else {
+      return SplashPage(toggleTheme: themeProvider.toggleTheme);
+    }
+  },
+),
+
+
         );
       },
     );
   }
 }
+

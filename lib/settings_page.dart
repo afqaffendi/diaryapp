@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'theme_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'notification_service.dart';
+import 'secure_storage_helper.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SettingsPage extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -16,6 +18,7 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool _isReminderEnabled = true;
+  bool _isPinEnabled = false;
 
   final List<Color> _colorChoices = [
     Color(0xFFF1B1E21), Color(0xFFFDAD4CF), Color(0xFFC97B63),
@@ -30,6 +33,8 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _loadReminderPreference();
+    _loadPinStatus();
+    _printSavedPin();
   }
 
   void _loadReminderPreference() async {
@@ -49,6 +54,70 @@ class _SettingsPageState extends State<SettingsPage> {
       await NotificationService.cancelReminder();
     }
   }
+
+
+void _togglePinLock(bool value) async {
+  final prefs = await SharedPreferences.getInstance();
+
+  if (value) {
+    final pin = await _showSetPinDialog(context);
+    if (pin != null && pin.length == 4) {
+      await SecureStorageHelper.savePin(pin);
+      await prefs.setBool('pin_enabled', true);
+      setState(() => _isPinEnabled = true);
+    } else {
+      // Cancelled or invalid PIN entry
+      await prefs.setBool('pin_enabled', false);
+      setState(() => _isPinEnabled = false);
+    }
+  } else {
+    await SecureStorageHelper.clearPin();
+    await prefs.setBool('pin_enabled', false);
+    setState(() => _isPinEnabled = false);
+  }
+}
+Future<String?> _showSetPinDialog(BuildContext context) async {
+  final controller = TextEditingController();
+  return showDialog<String>(
+    context: context,
+    builder: (_) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text("Set 4-digit PIN"),
+      content: TextField(
+        controller: controller,
+        obscureText: true,
+        keyboardType: TextInputType.number,
+        maxLength: 4,
+        decoration: const InputDecoration(
+          hintText: "Enter PIN",
+          border: OutlineInputBorder(),
+        ),
+
+        
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+        TextButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text("Save")),
+      ],
+    ),
+  );
+}
+
+
+void _loadPinStatus() async {
+  final prefs = await SharedPreferences.getInstance();
+  final enabled = prefs.getBool('pin_enabled') ?? false;
+  setState(() => _isPinEnabled = enabled);
+}
+
+void _printSavedPin() async {
+  final storage = FlutterSecureStorage();
+  final savedPin = await storage.read(key: 'app_pin');
+  print("📌 Saved PIN: $savedPin");
+}
+
+
+
 
   void _confirmReset(BuildContext context) {
     showDialog(
@@ -132,6 +201,16 @@ class _SettingsPageState extends State<SettingsPage> {
             onChanged: _toggleReminder,
             borderColor: borderColor,
           ),
+          
+          const SizedBox(height: 16),
+          _buildToggleCard(
+            context,
+            title: "Enable PIN Lock",
+            value: _isPinEnabled,
+            onChanged: _togglePinLock,
+            borderColor: borderColor,
+          ),
+          
           const SizedBox(height: 16),
           _buildCard(
             context,
@@ -142,6 +221,7 @@ class _SettingsPageState extends State<SettingsPage> {
             textColor: Colors.redAccent,
             borderColor: borderColor,
           ),
+
 
           const SizedBox(height: 24),
           Text(
