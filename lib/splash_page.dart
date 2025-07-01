@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'homepage.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lottie/lottie.dart';
 
 class SplashPage extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -11,32 +12,36 @@ class SplashPage extends StatefulWidget {
   State<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage> {
+class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeIn;
+  late Animation<Offset> _slideIn;
+
   @override
   void initState() {
     super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
+    _fadeIn = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _slideIn = Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    _controller.forward();
     _checkFirstTime();
   }
 
   Future<void> _checkFirstTime() async {
     final prefs = await SharedPreferences.getInstance();
     final hasName = prefs.containsKey('username');
-
     await Future.delayed(const Duration(seconds: 2));
-
-    if (!hasName) {
-      _showNameDialog();
-    } else {
-      _goToHome();
-    }
+    if (!mounted) return;
+    hasName ? _goToHome() : _showNameDialog();
   }
 
   void _goToHome() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (_) => HomePage(toggleTheme: widget.toggleTheme),
-      ),
+      MaterialPageRoute(builder: (_) => HomePage(toggleTheme: widget.toggleTheme)),
     );
   }
 
@@ -48,6 +53,7 @@ class _SplashPageState extends State<SplashPage> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Theme.of(context).cardColor,
         title: Text("Welcome!", style: GoogleFonts.playfairDisplay(fontSize: 22)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -77,24 +83,50 @@ class _SplashPageState extends State<SplashPage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('username', name);
     if (!mounted) return;
-    Navigator.pop(context); // close dialog
+    Navigator.pop(context);
     _goToHome();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFFFF9F5);
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
 
     return Scaffold(
       backgroundColor: bgColor,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset('assets/images/logo.gif', height: 420, width: 460),
-            const SizedBox(height: 24),
-          ],
+        child: FadeTransition(
+          opacity: _fadeIn,
+          child: SlideTransition(
+            position: _slideIn,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Lottie.asset(
+                  'assets/lottie/splash.json',
+                  height: 280,
+                  width: 280,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  "Spill your vibes.",
+                  style: GoogleFonts.quicksand(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

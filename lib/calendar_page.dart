@@ -142,7 +142,7 @@ class _CalendarPageState extends State<CalendarPage> {
                         }
 
                         if (id == null) {
-                          await SQLHelper.createDiary(feeling, desc);
+                          await SQLHelper.createDiary(feeling, desc, _selectedDay ?? DateTime.now());
                         } else {
                           await SQLHelper.updateDiary(id, feeling, desc);
                         }
@@ -428,9 +428,11 @@ class _CalendarPageState extends State<CalendarPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showForm(null),
+        shape: const CircleBorder(),
         backgroundColor:
             isDark ? const Color(0xFFFDAD4CF) : const Color(0xFFF1B1E21),
         child: Icon(Icons.add,
+        
             color: isDark ? const Color(0xFFF1B1E21) : Colors.white),
       ),
     );

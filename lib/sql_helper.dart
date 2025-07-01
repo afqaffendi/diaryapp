@@ -28,13 +28,16 @@ class SQLHelper {
     );
   }
 
-  static Future<int> createDiary(String feeling, String? description) async {
-    final db = await openDB();
-    if (db == null) return -1;
-    final data = {'feeling': feeling, 'description': description};
-    return await db.insert('diary', data,
-        conflictAlgorithm: sql.ConflictAlgorithm.replace);
-  }
+  static Future<int> createDiary(String feeling, String description, DateTime createdAt) async {
+  final db = await openDB();
+  if (db == null) return -1;
+  return db.insert('diary', {
+    'feeling': feeling,
+    'description': description,
+    'createdAt': createdAt.toIso8601String(),
+  });
+}
+
 
   static Future<List<Map<String, dynamic>>> getDiaries() async {
     final db = await openDB();
@@ -42,16 +45,20 @@ class SQLHelper {
     return db.query('diary', orderBy: "id");
   }
 
-  static Future<int> updateDiary(int id, String feeling, String? description) async {
-    final db = await openDB();
-    if (db == null) return -1;
-    final data = {
+static Future<int> updateDiary(int id, String feeling, String description) async {
+  final db = await openDB();
+  if (db == null) return -1;
+  return db.update(
+    'diary',
+    {
       'feeling': feeling,
       'description': description,
-      'createdAt': DateTime.now().toIso8601String(),
-    };
-    return await db.update('diary', data, where: "id = ?", whereArgs: [id]);
-  }
+    },
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+}
+
 
   static Future<void> deleteDiary(int id) async {
     final db = await openDB();

@@ -26,6 +26,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
+Set<int> _expandedCardIds = {};
+
 final TextEditingController _searchController = TextEditingController();
 List<Map<String, dynamic>> _filteredDiaries = [];
 
@@ -132,13 +134,12 @@ Future<void> _fetchWeather() async {
   ),
 ),
 
+
     _buildAnimatedWeatherWidget(),
     Expanded(child: _buildDiaryList()),
   ],
 ),
 
-      floatingActionButton: _buildFAB(isDark),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: _buildBottomNav(isDark, selectedColor),
     );
   }
@@ -349,7 +350,7 @@ void _filterDiaries(String query) {
         }
         if (id == null) {
           await SQLHelper.createDiary(
-              _feelingController.text, _descriptionController.text);
+              _feelingController.text, _descriptionController.text, DateTime.now());
         } else {
           await SQLHelper.updateDiary(
               id, _feelingController.text, _descriptionController.text);
@@ -446,7 +447,7 @@ void _filterDiaries(String query) {
       width: 60,
       child: FloatingActionButton(
         backgroundColor: isDark ? const Color(0xFFFDAD4CF) : const Color(0xFFF1B1E21),
-        elevation: 8,
+        elevation: 5,
         shape: const CircleBorder(),
         onPressed: () => _showForm(null),
         child: Icon(Icons.add,
@@ -455,42 +456,58 @@ void _filterDiaries(String query) {
     );
   }
 
-  Widget _buildBottomNav(bool isDark, Color selectedColor) {
-    return ClipRRect(
-      borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(24),
-        topRight: Radius.circular(24),
-      ),
-      child: BottomAppBar(
-        color: isDark ? const Color(0xFFFDAD4CF) : const Color(0xFF1B1E21),
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        elevation: 10,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                icon: Icon(LucideIcons.home,
-                    color: _selectedIndex == 0
-                        ? selectedColor
-                        : Colors.grey),
-                onPressed: () => _onNavTap(0),
-              ),
-              IconButton(
-                icon: Icon(LucideIcons.calendar,
-                    color: _selectedIndex == 1
-                        ? selectedColor
-                        : Colors.grey),
-                onPressed: () => _onNavTap(1),
-              ),
-            ],
+Widget _buildBottomNav(bool isDark, Color selectedColor) {
+  return Container(
+    margin: const EdgeInsets.symmetric(horizontal: 20.0),
+    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12),
+    decoration: BoxDecoration(
+      color: isDark ? const Color(0xFFFDAD4CF) : const Color(0xFF1B1E21),
+      borderRadius: BorderRadius.circular(50),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.1),
+          blurRadius: 8,
+        ),
+      ],
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        IconButton(
+          icon: Icon(LucideIcons.home,
+              color: _selectedIndex == 0 ? selectedColor : Colors.grey),
+          onPressed: () => _onNavTap(0),
+        ),
+        GestureDetector(
+          onTap: () => _showForm(null),
+          child: Container(
+            height: 48,
+            width: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isDark ? const Color(0xFFFDAD4CF) : const Color(0xFF1B1E21),
+            ),
+            child: Icon(
+              Icons.add,
+              size: 28,
+              color: isDark ? const Color(0xFF1B1E21) : Colors.white,
+            ),
           ),
         ),
-      ),
-    );
-  }
+        IconButton(
+          icon: Icon(LucideIcons.calendar,
+              color: _selectedIndex == 1 ? selectedColor : Colors.grey),
+          onPressed: () => _onNavTap(1),
+        ),
+      ],
+    ),
+  );
+}
+
+
+
+
+
 
   AppBar _buildAppBar(BuildContext context) {
     return AppBar(
@@ -512,105 +529,133 @@ void _filterDiaries(String query) {
     );
   }
 
-  Widget _buildDiaryList() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    } else if (_diaries.isEmpty) {
-      return const Center(child: Text("No entries yet."));
-    } else {
-      return RefreshIndicator(
-        onRefresh: _refreshDiaries,
-        child: ListView.builder(
-          itemCount: _filteredDiaries.length,
-          itemBuilder: (_, index) {
-            final diary = _filteredDiaries[index];
-            final time = DateFormat('dd MMM yyyy, hh:mm a')
-                .format(DateTime.parse(diary['createdAt']));
-            final mood = diary['feeling'].toString().toLowerCase();
-            final borderColor = _getMoodBorderColor(context, mood);
+Widget _buildDiaryList() {
+  if (_isLoading) {
+    return const Center(child: CircularProgressIndicator());
+  } else if (_diaries.isEmpty) {
+    return const Center(child: Text("No entries yet."));
+  } else {
+    return RefreshIndicator(
+      onRefresh: _refreshDiaries,
+      child: ListView.builder(
+        itemCount: _filteredDiaries.length,
+        padding: const EdgeInsets.only(bottom: 0),
+        itemBuilder: (_, index) {
+          final diary = _filteredDiaries[index];
+          final time = DateFormat('dd MMM yyyy, hh:mm a')
+              .format(DateTime.parse(diary['createdAt']));
+          final mood = diary['feeling'].toString().toLowerCase();
+          final borderColor = _getMoodBorderColor(context, mood);
 
-            return _buildDiaryCard(diary, time, borderColor);
-          },
-        ),
-      );
-    }
-  }
-
-  Widget _buildDiaryCard(Map<String, dynamic> diary, String time, Color borderColor) {
-    final mood = diary['feeling'].toString().toLowerCase();
-
-    return Dismissible(
-      key: Key(diary['id'].toString()),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        color: Colors.redAccent,
-        child: const Icon(Icons.delete, color: Colors.white),
+          return _buildDiaryCard(diary, time, borderColor);
+        },
       ),
-      onDismissed: (_) async {
-        await _deleteDiary(diary['id']);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Entry deleted")),
-        );
-      },
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        child: Container(
-          key: Key("diary-${diary['id']}"),
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            border: Border.all(color: borderColor, width: 4.5),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: borderColor.withOpacity(0.15),
-                    child: Text(
-                      _getMoodEmoji(mood),
-                      style: const TextStyle(fontSize: 20),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(diary['feeling'],
-                        style: GoogleFonts.quicksand(
-                            fontWeight: FontWeight.bold, fontSize: 16)),
-                  ),
-                  Text(time, style: GoogleFonts.quicksand(fontSize: 12)),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(diary['description'],
-                  style: GoogleFonts.quicksand(fontSize: 14)),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit, size: 20),
-                    onPressed: () => _showForm(diary['id']),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete, size: 20),
-                    onPressed: () => _deleteDiary(diary['id']),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-
-      
     );
   }
+}
+
+
+Widget _buildDiaryCard(Map<String, dynamic> diary, String time, Color borderColor) {
+  final mood = diary['feeling'].toString().toLowerCase();
+  final id = diary['id'] as int;
+  final isExpanded = _expandedCardIds.contains(id);
+  final description = diary['description'];
+
+  return Dismissible(
+    key: Key(id.toString()),
+    direction: DismissDirection.endToStart,
+    background: Container(
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.only(right: 20),
+      color: Colors.redAccent,
+      child: const Icon(Icons.delete, color: Colors.white),
+    ),
+    onDismissed: (_) async {
+      await _deleteDiary(id);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Entry deleted")),
+      );
+    },
+    child: GestureDetector(
+      onTap: () {
+        setState(() {
+          if (isExpanded) {
+            _expandedCardIds.remove(id);
+          } else {
+            _expandedCardIds.add(id);
+          }
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          border: Border.all(color: borderColor, width: 4.5),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: borderColor.withOpacity(0.15),
+                  child: Text(
+                    _getMoodEmoji(mood),
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(diary['feeling'],
+                      style: GoogleFonts.quicksand(
+                          fontWeight: FontWeight.bold, fontSize: 16)),
+                ),
+                Text(time, style: GoogleFonts.quicksand(fontSize: 12)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            AnimatedCrossFade(
+              duration: const Duration(milliseconds: 250),
+              firstChild: Text(
+                description,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.quicksand(fontSize: 14),
+              ),
+              secondChild: Text(
+                description,
+                style: GoogleFonts.quicksand(fontSize: 14),
+              ),
+              crossFadeState: isExpanded
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 20),
+                  onPressed: () => _showForm(id),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, size: 20),
+                  onPressed: () => _deleteDiary(id),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+
+
 
   Future<void> _deleteDiary(int id) async {
     await SQLHelper.deleteDiary(id);

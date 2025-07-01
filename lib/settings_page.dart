@@ -3,6 +3,8 @@ import 'sql_helper.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'theme_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'notification_service.dart';
 
 class SettingsPage extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -13,33 +15,39 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _visible = false;
+  bool _isReminderEnabled = true;
 
   final List<Color> _colorChoices = [
-  Color(0xFFF1B1E21), // Deep Red
-  Color(0xFFFDAD4CF), // Soft Peach
-  Color(0xFFC97B63),  // Blush Nude
-  Color(0xFF3D5A80),  // Ocean Blue
-  Color(0xFF6A994E),  // Sage Green
-  Color(0xFF9B5DE5),  // Violet Purple
-  Color(0xFF212529),  // Dark Grey
-  Color(0xFFFFC300),  // Bright Yellow
-  Color(0xFFFF6F61),  // Coral Pink
-  Color(0xFF00A896),  // Calm Teal
-  Color(0xFF4A4E69),  // Dusty Indigo
-  Color(0xFFE07A5F),  // Clay Orange
-  Color(0xFFF0A6CA),  // Bubblegum Pink
-  Color(0xFF7B2CBF),  // Rich Lavender
-  Color(0xFF2A9D8F),  // Jungle Green
-  Color(0xFFB5838D),  // Faded Rose
+    Color(0xFFF1B1E21), Color(0xFFFDAD4CF), Color(0xFFC97B63),
+    Color(0xFF3D5A80), Color(0xFF6A994E), Color(0xFF9B5DE5),
+    Color(0xFF212529), Color(0xFFFFC300), Color(0xFFFF6F61),
+    Color(0xFF00A896), Color(0xFF4A4E69), Color(0xFFE07A5F),
+    Color(0xFFF0A6CA), Color(0xFF7B2CBF), Color(0xFF2A9D8F),
+    Color(0xFFB5838D),
   ];
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 150), () {
-      if (mounted) setState(() => _visible = true);
-    });
+    _loadReminderPreference();
+  }
+
+  void _loadReminderPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool('reminder_enabled') ?? true;
+    setState(() => _isReminderEnabled = enabled);
+  }
+
+  void _toggleReminder(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() => _isReminderEnabled = value);
+    await prefs.setBool('reminder_enabled', value);
+
+    if (value) {
+      await NotificationService.scheduleDailyReminder();
+    } else {
+      await NotificationService.cancelReminder();
+    }
   }
 
   void _confirmReset(BuildContext context) {
@@ -81,18 +89,15 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
-
-  bool isDarkColor(Color color) {
-    return color.computeLuminance() < 0.5;
-  }
+  
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = theme.brightness == Brightness.dark;
-    final bgColor = theme.scaffoldBackgroundColor;
     final borderColor = isDark ? Colors.white : const Color(0xFF1B1E21);
+    final bgColor = theme.scaffoldBackgroundColor;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -109,69 +114,72 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
       ),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 400),
-        child: _visible
-            ? ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                children: [
-                  _buildCard(
-                    context,
-                    title: "Toggle Light / Dark Theme",
-                    icon: Icons.brightness_6_rounded,
-                    onTap: widget.toggleTheme,
-                    borderColor: borderColor,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildCard(
-                    context,
-                    title: "Reset All Diary Entries",
-                    icon: Icons.delete_forever_rounded,
-                    onTap: () => _confirmReset(context),
-                    iconColor: Colors.redAccent,
-                    textColor: Colors.redAccent,
-                    borderColor: borderColor,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    "Choose Accent Color",
-                    style: GoogleFonts.quicksand(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-  spacing: 12,
-  runSpacing: 12,
-  children: _colorChoices.map((color) {
-    final isSelected = themeProvider.accentColor.value == color.value;
-    final contrastBorder = color.computeLuminance() < 0.5 ? Colors.white : Colors.black;
-
-    return GestureDetector(
-      onTap: () => themeProvider.setAccentColor(color),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: isSelected
-                ? contrastBorder.withOpacity(0.8)
-                : contrastBorder.withOpacity(0.3),
-            width: isSelected ? 3.2 : 1.2,
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        children: [
+          _buildCard(
+            context,
+            title: "Toggle Light / Dark Theme",
+            icon: Icons.brightness_6_rounded,
+            onTap: widget.toggleTheme,
+            borderColor: borderColor,
           ),
-        ),
-        child: isSelected
-            ? Icon(Icons.check, color: contrastBorder, size: 20)
-            : null,
-      ),
-    );
-  }).toList(),
-),
+                    const SizedBox(height: 16),
+          _buildToggleCard(
+            context,
+            title: "Daily Reminder Notification",
+            value: _isReminderEnabled,
+            onChanged: _toggleReminder,
+            borderColor: borderColor,
+          ),
+          const SizedBox(height: 16),
+          _buildCard(
+            context,
+            title: "Reset All Diary Entries",
+            icon: Icons.delete_forever_rounded,
+            onTap: () => _confirmReset(context),
+            iconColor: Colors.redAccent,
+            textColor: Colors.redAccent,
+            borderColor: borderColor,
+          ),
 
-                ],
-              )
-            : const SizedBox(),
+          const SizedBox(height: 24),
+          Text(
+            "Choose Accent Color",
+            style: GoogleFonts.quicksand(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: _colorChoices.map((color) {
+              final isSelected = themeProvider.accentColor.value == color.value;
+              final contrastBorder = color.computeLuminance() < 0.5 ? Colors.white : Colors.black;
+
+              return GestureDetector(
+                onTap: () => themeProvider.setAccentColor(color),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected
+                          ? contrastBorder.withOpacity(0.8)
+                          : contrastBorder.withOpacity(0.3),
+                      width: isSelected ? 3.2 : 1.2,
+                    ),
+                  ),
+                  child: isSelected
+                      ? Icon(Icons.check, color: contrastBorder, size: 20)
+                      : null,
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
@@ -204,6 +212,37 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         trailing: Icon(icon, size: 24, color: iconColor ?? Theme.of(context).iconTheme.color),
         onTap: onTap,
+      ),
+    );
+  }
+
+  Widget _buildToggleCard(
+    BuildContext context, {
+    required String title,
+    required bool value,
+    required Function(bool) onChanged,
+    required Color borderColor,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: borderColor.withOpacity(0.6), width: 3.2),
+        borderRadius: BorderRadius.circular(18),
+        color: Theme.of(context).cardColor,
+      ),
+      child: SwitchListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        title: Text(
+          title,
+          style: GoogleFonts.quicksand(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        ),
+        value: value,
+        onChanged: onChanged,
+        activeColor: Theme.of(context).colorScheme.primary,
       ),
     );
   }
