@@ -8,7 +8,6 @@ import 'splash_page.dart';
 import 'lock_screen.dart';
 import 'notification_service.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'pin_lock_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

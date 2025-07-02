@@ -22,11 +22,18 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _feelingController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  bool _showExtraMoods = false; 
 
   List<Map<String, dynamic>> _diaries = [];
   List<Map<String, dynamic>> _filteredDiaries = [];
   Set<int> _expandedCardIds = {};
+
+Future<void> _toggleFavorite(int id, bool isCurrentlyFavorite) async {
+  await SQLHelper.toggleFavorite(id, !isCurrentlyFavorite);
+  _refreshDiaries(); 
+}
+
+
+
 
   String _username = 'Guest';
   String? _profileImagePath;
@@ -40,8 +47,7 @@ class _HomePageState extends State<HomePage> {
     'anxious': '😰',
     'neutral': '😐',
   };
-  final List<String> _extraEmojis = ['😎', '😴', '🤯', '😇', '🤗', '🥳', '🤔', '🤫', '❤️'];
-
+  
   @override
   void initState() {
     super.initState();
@@ -461,50 +467,78 @@ Widget _buildDiaryCard(Map<String, dynamic> diary, String time, Color borderColo
             const SizedBox(height: 12),
 
             // Description
-            Text(description, style: GoogleFonts.quicksand()),
+            AnimatedCrossFade(
+  firstChild: Text(
+    description,
+    style: GoogleFonts.quicksand(),
+    maxLines: 2,
+    overflow: TextOverflow.ellipsis,
+  ),
+  secondChild: Text(
+    description,
+    style: GoogleFonts.quicksand(),
+  ),
+  crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+  duration: const Duration(milliseconds: 300),
+  firstCurve: Curves.easeInOut,
+  secondCurve: Curves.easeInOut,
+),
 
             const SizedBox(height: 12),
 
             // Edit / Delete Buttons
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 20),
-                  tooltip: "Edit",
-                  onPressed: () => _showForm(id),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, size: 20),
-                  tooltip: "Delete",
-                  onPressed: () async {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text("Delete Entry"),
-                        content: const Text("Are you sure you want to delete this diary entry?"),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text("Cancel"),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text("Delete", style: TextStyle(color: Colors.red)),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirm == true) {
-                      await _deleteDiary(id);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Entry deleted")),
-                      );
-                    }
-                  },
-                ),
-              ],
-            ),
+  mainAxisAlignment: MainAxisAlignment.end,
+  children: [
+    IconButton(
+  icon: Icon(
+    diary['isFavorite'] == 1 ? Icons.favorite : Icons.favorite_border,
+    color: diary['isFavorite'] == 1 ? Colors.red : Colors.grey,
+  ),
+  tooltip: "Favorite",
+  onPressed: () {
+    final isFav = diary['isFavorite'] == 1;
+    _toggleFavorite(diary['id'], isFav); // This must call your method
+  },
+),
+
+
+    IconButton(
+      icon: const Icon(Icons.edit, size: 20),
+      tooltip: "Edit",
+      onPressed: () => _showForm(id),
+    ),
+    IconButton(
+      icon: const Icon(Icons.delete, size: 20),
+      tooltip: "Delete",
+      onPressed: () async {
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text("Delete Entry"),
+            content: const Text("Are you sure you want to delete this diary entry?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text("Delete", style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+        );
+        if (confirm == true) {
+          await _deleteDiary(id);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Entry deleted")),
+          );
+        }
+      },
+    ),
+  ],
+),
           ],
         ),
       ),

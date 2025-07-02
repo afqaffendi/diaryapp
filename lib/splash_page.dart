@@ -33,7 +33,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
   Future<void> _checkFirstTime() async {
     final prefs = await SharedPreferences.getInstance();
     final hasName = prefs.containsKey('username');
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 4));
     if (!mounted) return;
     hasName ? _goToHome() : _showNameDialog();
   }
@@ -117,12 +117,21 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  "Spill your vibes.",
+                  "Welcome back, friend",
                   style: GoogleFonts.quicksand(
                     fontSize: 22,
                     fontWeight: FontWeight.w600,
                     color: textColor,
                   ),
+                ),
+                const SizedBox(height: 16),
+
+                // Cozy Lottie loading animation
+                Lottie.asset(
+                  'assets/lottie/loading_paw.json', // Make sure this file exists
+                  width: 60,
+                  height: 60,
+                  fit: BoxFit.contain,
                 ),
               ],
             ),

@@ -91,6 +91,7 @@ flutter:
     - assets/lottie/splash.json
     - assets/lottie/streak.json
     - assets/lottie/idlecat.json
+    - assets/lottie/loading_paw.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
