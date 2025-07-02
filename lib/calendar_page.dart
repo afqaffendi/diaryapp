@@ -120,7 +120,7 @@ class _CalendarPageState extends State<CalendarPage> {
                       controller: _descriptionController,
                       maxLines: 3,
                       decoration: InputDecoration(
-                        hintText: 'Write something...',
+                        hintText: 'Describe your vibes...',
                         filled: true,
                         fillColor: Theme.of(context).cardColor,
                         border: OutlineInputBorder(

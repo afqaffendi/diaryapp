@@ -261,9 +261,9 @@ void _showForm(int? id) {
                   const SizedBox(height: 16),
                   TextField(
                     controller: _descriptionController,
-                    maxLines: 3,
+                    maxLines: 2,
                     decoration: InputDecoration(
-                      hintText: 'Write something...',
+                      hintText: 'Describe your vibes...',
                       filled: true,
                       fillColor: Theme.of(context).cardColor,
                       border: OutlineInputBorder(
@@ -355,9 +355,11 @@ void _showForm(int? id) {
 
 Widget _buildDiaryCard(Map<String, dynamic> diary, String time, Color borderColor, bool isExpanded) {
   final id = diary['id'];
+  final description = diary['description'] ?? '';
+
   return Dismissible(
     key: Key(id.toString()),
-    direction: DismissDirection.endToStart,
+    direction: DismissDirection.endToStart, // right to left
     background: Container(
       alignment: Alignment.centerRight,
       padding: const EdgeInsets.only(right: 20),
@@ -365,79 +367,154 @@ Widget _buildDiaryCard(Map<String, dynamic> diary, String time, Color borderColo
       child: const Icon(Icons.delete, color: Colors.white),
     ),
     confirmDismiss: (_) async {
-      await _deleteDiary(id);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Entry deleted")),
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text("Delete Entry"),
+          content: const Text("Are you sure you want to delete this diary entry?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text("Delete", style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
       );
-      return true;
+      return confirm ?? false;
     },
-    child: Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        border: Border.all(color: borderColor, width: 4.5),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: borderColor.withOpacity(0.2),
-                child: Text(
-                  _getMoodEmoji(diary['feeling']),
-                  style: const TextStyle(fontSize: 18),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  diary['feeling'],
-                  style: GoogleFonts.quicksand(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+    onDismissed: (_) async {
+      // Temporarily store deleted diary for undo
+      final deletedDiary = Map<String, dynamic>.from(diary);
+      await _deleteDiary(id);
+
+      // Show SnackBar with Undo option
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Entry deleted"),
+          action: SnackBarAction(
+            label: "Undo",
+            onPressed: () async {
+              await SQLHelper.createDiary(
+                deletedDiary['feeling'],
+                deletedDiary['description'],
+                DateTime.parse(deletedDiary['createdAt']),
+              );
+              _refreshDiaries();
+            },
+          ),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    },
+    child: GestureDetector(
+      onTap: () {
+        setState(() {
+          if (_expandedCardIds.contains(id)) {
+            _expandedCardIds.remove(id);
+          } else {
+            _expandedCardIds.add(id);
+          }
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          border: Border.all(color: borderColor, width: 4.5),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Row
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: borderColor.withOpacity(0.2),
+                  child: Text(
+                    _getMoodEmoji(diary['feeling']),
+                    style: const TextStyle(fontSize: 18),
                   ),
                 ),
-              ),
-              Text(
-                time,
-                style: GoogleFonts.quicksand(fontSize: 12),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            diary['description'],
-            style: GoogleFonts.quicksand(),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.edit, size: 20),
-                tooltip: "Edit",
-                onPressed: () => _showForm(id),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete, size: 20),
-                tooltip: "Delete",
-                onPressed: () async {
-                  await _deleteDiary(id);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Entry deleted")),
-                  );
-                },
-              ),
-            ],
-          ),
-        ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    diary['feeling'],
+                    style: GoogleFonts.quicksand(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                Text(
+                  time,
+                  style: GoogleFonts.quicksand(fontSize: 12),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Description
+            Text(description, style: GoogleFonts.quicksand()),
+
+            const SizedBox(height: 12),
+
+            // Edit / Delete Buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 20),
+                  tooltip: "Edit",
+                  onPressed: () => _showForm(id),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, size: 20),
+                  tooltip: "Delete",
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text("Delete Entry"),
+                        content: const Text("Are you sure you want to delete this diary entry?"),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text("Cancel"),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      await _deleteDiary(id);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Entry deleted")),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     ),
   );
 }
+
+
+
+
 
 
 

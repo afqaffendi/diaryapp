@@ -20,14 +20,13 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isReminderEnabled = true;
   bool _isPinEnabled = false;
 
-  final List<Color> _colorChoices = [
-    Color(0xFFF1B1E21), Color(0xFFFDAD4CF), Color(0xFFC97B63),
-    Color(0xFF3D5A80), Color(0xFF6A994E), Color(0xFF9B5DE5),
-    Color(0xFF212529), Color(0xFFFFC300), Color(0xFFFF6F61),
-    Color(0xFF00A896), Color(0xFF4A4E69), Color(0xFFE07A5F),
-    Color(0xFFF0A6CA), Color(0xFF7B2CBF), Color(0xFF2A9D8F),
-    Color(0xFFB5838D),
-  ];
+  // Theme swatches with names
+  final Map<String, Color> _themeSwatches = {
+    'red': Color(0xFFFAD4CF),
+    'pink': Color(0xFFFFDDEE),
+    'black': Colors.black,
+    'blue': Color(0xFFD6E6FF),
+};
 
   @override
   void initState() {
@@ -55,69 +54,62 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  void _togglePinLock(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
 
-void _togglePinLock(bool value) async {
-  final prefs = await SharedPreferences.getInstance();
-
-  if (value) {
-    final pin = await _showSetPinDialog(context);
-    if (pin != null && pin.length == 4) {
-      await SecureStorageHelper.savePin(pin);
-      await prefs.setBool('pin_enabled', true);
-      setState(() => _isPinEnabled = true);
+    if (value) {
+      final pin = await _showSetPinDialog(context);
+      if (pin != null && pin.length == 4) {
+        await SecureStorageHelper.savePin(pin);
+        await prefs.setBool('pin_enabled', true);
+        setState(() => _isPinEnabled = true);
+      } else {
+        await prefs.setBool('pin_enabled', false);
+        setState(() => _isPinEnabled = false);
+      }
     } else {
-      // Cancelled or invalid PIN entry
+      await SecureStorageHelper.clearPin();
       await prefs.setBool('pin_enabled', false);
       setState(() => _isPinEnabled = false);
     }
-  } else {
-    await SecureStorageHelper.clearPin();
-    await prefs.setBool('pin_enabled', false);
-    setState(() => _isPinEnabled = false);
   }
-}
-Future<String?> _showSetPinDialog(BuildContext context) async {
-  final controller = TextEditingController();
-  return showDialog<String>(
-    context: context,
-    builder: (_) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text("Set 4-digit PIN"),
-      content: TextField(
-        controller: controller,
-        obscureText: true,
-        keyboardType: TextInputType.number,
-        maxLength: 4,
-        decoration: const InputDecoration(
-          hintText: "Enter PIN",
-          border: OutlineInputBorder(),
+
+  Future<String?> _showSetPinDialog(BuildContext context) async {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Set 4-digit PIN"),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          keyboardType: TextInputType.number,
+          maxLength: 4,
+          decoration: const InputDecoration(
+            hintText: "Enter PIN",
+            border: OutlineInputBorder(),
+          ),
         ),
-
-        
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text("Save")),
+        ],
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-        TextButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text("Save")),
-      ],
-    ),
-  );
-}
+    );
+  }
 
+  void _loadPinStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool('pin_enabled') ?? false;
+    setState(() => _isPinEnabled = enabled);
+  }
 
-void _loadPinStatus() async {
-  final prefs = await SharedPreferences.getInstance();
-  final enabled = prefs.getBool('pin_enabled') ?? false;
-  setState(() => _isPinEnabled = enabled);
-}
-
-void _printSavedPin() async {
-  final storage = FlutterSecureStorage();
-  final savedPin = await storage.read(key: 'app_pin');
-  print("📌 Saved PIN: $savedPin");
-}
-
-
-
+  void _printSavedPin() async {
+    final storage = FlutterSecureStorage();
+    final savedPin = await storage.read(key: 'user_pin');
+    print("📌 Saved PIN: $savedPin");
+  }
 
   void _confirmReset(BuildContext context) {
     showDialog(
@@ -158,7 +150,6 @@ void _printSavedPin() async {
       ),
     );
   }
-  
 
   @override
   Widget build(BuildContext context) {
@@ -193,7 +184,7 @@ void _printSavedPin() async {
             onTap: widget.toggleTheme,
             borderColor: borderColor,
           ),
-                    const SizedBox(height: 16),
+          const SizedBox(height: 16),
           _buildToggleCard(
             context,
             title: "Daily Reminder Notification",
@@ -201,7 +192,6 @@ void _printSavedPin() async {
             onChanged: _toggleReminder,
             borderColor: borderColor,
           ),
-          
           const SizedBox(height: 16),
           _buildToggleCard(
             context,
@@ -210,7 +200,6 @@ void _printSavedPin() async {
             onChanged: _togglePinLock,
             borderColor: borderColor,
           ),
-          
           const SizedBox(height: 16),
           _buildCard(
             context,
@@ -221,44 +210,43 @@ void _printSavedPin() async {
             textColor: Colors.redAccent,
             borderColor: borderColor,
           ),
+const SizedBox(height: 24),
+Text(
+  "Choose Accent Theme",
+  style: GoogleFonts.quicksand(fontSize: 16, fontWeight: FontWeight.bold),
+),
+const SizedBox(height: 12),
+Wrap(
+  spacing: 12,
+  runSpacing: 12,
+  children: _themeSwatches.entries.map((entry) {
+    final themeName = entry.key;
+    final color = entry.value;
+    final isSelected = themeProvider.selectedTheme == themeName;
+    final contrast = color.computeLuminance() < 0.5 ? Colors.white : Colors.black;
 
-
-          const SizedBox(height: 24),
-          Text(
-            "Choose Accent Color",
-            style: GoogleFonts.quicksand(fontSize: 16, fontWeight: FontWeight.bold),
+    return GestureDetector(
+      onTap: () => themeProvider.setThemeByName(themeName),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isSelected ? contrast.withOpacity(0.9) : contrast.withOpacity(0.3),
+            width: isSelected ? 3.2 : 1.2,
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: _colorChoices.map((color) {
-              final isSelected = themeProvider.accentColor.value == color.value;
-              final contrastBorder = color.computeLuminance() < 0.5 ? Colors.white : Colors.black;
+        ),
+        child: isSelected
+            ? Icon(Icons.check, color: contrast, size: 20)
+            : null,
+      ),
+    );
+  }).toList(),
+),
 
-              return GestureDetector(
-                onTap: () => themeProvider.setAccentColor(color),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isSelected
-                          ? contrastBorder.withOpacity(0.8)
-                          : contrastBorder.withOpacity(0.3),
-                      width: isSelected ? 3.2 : 1.2,
-                    ),
-                  ),
-                  child: isSelected
-                      ? Icon(Icons.check, color: contrastBorder, size: 20)
-                      : null,
-                ),
-              );
-            }).toList(),
-          ),
         ],
       ),
     );
