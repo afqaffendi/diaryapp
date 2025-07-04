@@ -6,7 +6,7 @@ import 'theme_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'notification_service.dart';
 import 'secure_storage_helper.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'text_scale_provider.dart';
 
 class SettingsPage extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -20,26 +20,25 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isReminderEnabled = true;
   bool _isPinEnabled = false;
 
-  // Theme swatches with names
   final Map<String, Color> _themeSwatches = {
     'red': Color(0xFFFAD4CF),
     'pink': Color(0xFFFFDDEE),
     'black': Colors.black,
     'blue': Color(0xFFD6E6FF),
-};
+  };
 
   @override
   void initState() {
     super.initState();
     _loadReminderPreference();
     _loadPinStatus();
-    _printSavedPin();
   }
 
   void _loadReminderPreference() async {
     final prefs = await SharedPreferences.getInstance();
-    final enabled = prefs.getBool('reminder_enabled') ?? true;
-    setState(() => _isReminderEnabled = enabled);
+    setState(() {
+      _isReminderEnabled = prefs.getBool('reminder_enabled') ?? true;
+    });
   }
 
   void _toggleReminder(bool value) async {
@@ -47,11 +46,7 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() => _isReminderEnabled = value);
     await prefs.setBool('reminder_enabled', value);
 
-    if (value) {
-      await NotificationService.scheduleDailyReminder();
-    } else {
-      await NotificationService.cancelReminder();
-    }
+    value ? await NotificationService.scheduleDailyReminder() : await NotificationService.cancelReminder();
   }
 
   void _togglePinLock(bool value) async {
@@ -101,14 +96,9 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _loadPinStatus() async {
     final prefs = await SharedPreferences.getInstance();
-    final enabled = prefs.getBool('pin_enabled') ?? false;
-    setState(() => _isPinEnabled = enabled);
-  }
-
-  void _printSavedPin() async {
-    final storage = FlutterSecureStorage();
-    final savedPin = await storage.read(key: 'user_pin');
-    print("📌 Saved PIN: $savedPin");
+    setState(() {
+      _isPinEnabled = prefs.getBool('pin_enabled') ?? false;
+    });
   }
 
   void _confirmReset(BuildContext context) {
@@ -139,9 +129,7 @@ class _SettingsPageState extends State<SettingsPage> {
               }
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text("All entries deleted.", style: GoogleFonts.quicksand()),
-                ),
+                SnackBar(content: Text("All entries deleted.", style: GoogleFonts.quicksand())),
               );
             },
             child: Text("Confirm", style: GoogleFonts.quicksand(color: Colors.white)),
@@ -155,6 +143,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final scaleProvider = Provider.of<TextScaleProvider>(context);
     final isDark = theme.brightness == Brightness.dark;
     final borderColor = isDark ? Colors.white : const Color(0xFF1B1E21);
     final bgColor = theme.scaffoldBackgroundColor;
@@ -177,83 +166,60 @@ class _SettingsPageState extends State<SettingsPage> {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         children: [
-          _buildCard(
-            context,
-            title: "Toggle Light / Dark Theme",
-            icon: Icons.brightness_6_rounded,
-            onTap: widget.toggleTheme,
-            borderColor: borderColor,
-          ),
+          _buildCard(context, title: "Toggle Light / Dark Theme", icon: Icons.brightness_6_rounded, onTap: widget.toggleTheme, borderColor: borderColor),
           const SizedBox(height: 16),
-          _buildToggleCard(
-            context,
-            title: "Daily Reminder Notification",
-            value: _isReminderEnabled,
-            onChanged: _toggleReminder,
-            borderColor: borderColor,
-          ),
+          _buildToggleCard(context, title: "Daily Reminder Notification", value: _isReminderEnabled, onChanged: _toggleReminder, borderColor: borderColor),
           const SizedBox(height: 16),
-          _buildToggleCard(
-            context,
-            title: "Enable PIN Lock",
-            value: _isPinEnabled,
-            onChanged: _togglePinLock,
-            borderColor: borderColor,
-          ),
+          _buildToggleCard(context, title: "Enable PIN Lock", value: _isPinEnabled, onChanged: _togglePinLock, borderColor: borderColor),
           const SizedBox(height: 16),
-          _buildCard(
-            context,
-            title: "Reset All Diary Entries",
-            icon: Icons.delete_forever_rounded,
-            onTap: () => _confirmReset(context),
-            iconColor: Colors.redAccent,
-            textColor: Colors.redAccent,
-            borderColor: borderColor,
-          ),
-const SizedBox(height: 24),
-Text(
-  "Choose Accent Theme",
-  style: GoogleFonts.quicksand(fontSize: 16, fontWeight: FontWeight.bold),
-),
-const SizedBox(height: 12),
-Wrap(
-  spacing: 12,
-  runSpacing: 12,
-  children: _themeSwatches.entries.map((entry) {
-    final themeName = entry.key;
-    final color = entry.value;
-    final isSelected = themeProvider.selectedTheme == themeName;
-    final contrast = color.computeLuminance() < 0.5 ? Colors.white : Colors.black;
+          _buildCard(context, title: "Reset All Diary Entries", icon: Icons.delete_forever_rounded, onTap: () => _confirmReset(context), iconColor: Colors.redAccent, textColor: Colors.redAccent, borderColor: borderColor),
+          const SizedBox(height: 24),
+          Text("Choose Accent Theme", style: GoogleFonts.quicksand(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: _themeSwatches.entries.map((entry) {
+              final themeName = entry.key;
+              final color = entry.value;
+              final isSelected = themeProvider.selectedTheme == themeName;
+              final contrast = color.computeLuminance() < 0.5 ? Colors.white : Colors.black;
 
-    return GestureDetector(
-      onTap: () => themeProvider.setThemeByName(themeName),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: isSelected ? contrast.withOpacity(0.9) : contrast.withOpacity(0.3),
-            width: isSelected ? 3.2 : 1.2,
+              return GestureDetector(
+                onTap: () => themeProvider.setThemeByName(themeName),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected ? contrast.withOpacity(0.9) : contrast.withOpacity(0.3),
+                      width: isSelected ? 3.2 : 1.2,
+                    ),
+                  ),
+                  child: isSelected ? Icon(Icons.check, color: contrast, size: 20) : null,
+                ),
+              );
+            }).toList(),
           ),
-        ),
-        child: isSelected
-            ? Icon(Icons.check, color: contrast, size: 20)
-            : null,
-      ),
-    );
-  }).toList(),
-),
-
+          const SizedBox(height: 28),
+          Text("Adjust Text Size", style: GoogleFonts.quicksand(fontSize: 16, fontWeight: FontWeight.bold)),
+          Slider(
+            value: scaleProvider.scale,
+            min: 0.8,
+            max: 1.5,
+            divisions: 7,
+            label: "${(scaleProvider.scale * 100).round()}%",
+            onChanged: (value) => scaleProvider.setScale(value),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildCard(
-    BuildContext context, {
+  Widget _buildCard(BuildContext context, {
     required String title,
     required IconData icon,
     required VoidCallback onTap,
@@ -272,11 +238,7 @@ Wrap(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         title: Text(
           title,
-          style: GoogleFonts.quicksand(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: textColor ?? Theme.of(context).textTheme.bodyLarge?.color,
-          ),
+          style: GoogleFonts.quicksand(fontSize: 16, fontWeight: FontWeight.w600, color: textColor ?? Theme.of(context).textTheme.bodyLarge?.color),
         ),
         trailing: Icon(icon, size: 24, color: iconColor ?? Theme.of(context).iconTheme.color),
         onTap: onTap,
@@ -284,8 +246,7 @@ Wrap(
     );
   }
 
-  Widget _buildToggleCard(
-    BuildContext context, {
+  Widget _buildToggleCard(BuildContext context, {
     required String title,
     required bool value,
     required Function(bool) onChanged,
@@ -302,11 +263,7 @@ Wrap(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
         title: Text(
           title,
-          style: GoogleFonts.quicksand(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-          ),
+          style: GoogleFonts.quicksand(fontSize: 16, fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color),
         ),
         value: value,
         onChanged: onChanged,

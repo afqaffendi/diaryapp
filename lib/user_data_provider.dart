@@ -35,7 +35,10 @@ class UserDataProvider with ChangeNotifier {
   }
 
   Future<void> updateProfileImage(File image) async {
-    _profileImage = image;
-    notifyListeners();
-  }
+  final directory = await getApplicationDocumentsDirectory();
+  final savedImage = await image.copy('${directory.path}/profile.png');
+  _profileImage = savedImage;
+  notifyListeners();
+}
+
 }

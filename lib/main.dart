@@ -8,6 +8,7 @@ import 'splash_page.dart';
 import 'lock_screen.dart';
 import 'notification_service.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'text_scale_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +29,7 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => UserDataProvider()),
+        ChangeNotifierProvider(create: (_) => TextScaleProvider()),
       ],
       child: const MyApp(),
     ),
@@ -49,6 +51,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textScale = Provider.of<TextScaleProvider>(context).scale;
+
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, _) {
         final accent = themeProvider.accentColor;
@@ -57,6 +61,12 @@ class MyApp extends StatelessWidget {
           title: 'Diary App',
           debugShowCheckedModeBanner: false,
           themeMode: themeProvider.themeMode,
+          builder: (context, child) {
+            return MediaQuery(
+              data: MediaQuery.of(context).copyWith(textScaleFactor: textScale),
+              child: child!,
+            );
+          },
           theme: ThemeData(
             brightness: Brightness.light,
             scaffoldBackgroundColor: accent,
@@ -103,37 +113,36 @@ class MyApp extends StatelessWidget {
               onSurface: Colors.white70,
             ),
           ),
-home: FutureBuilder<SharedPreferences>(
-  future: SharedPreferences.getInstance(),
-  builder: (context, snapshot) {
-    if (!snapshot.hasData) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
+          home: FutureBuilder<SharedPreferences>(
+            future: SharedPreferences.getInstance(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()));
+              }
 
-    final prefs = snapshot.data!;
-    final pinEnabled = prefs.getBool('pin_enabled') ?? false;
+              final prefs = snapshot.data!;
+              final pinEnabled = prefs.getBool('pin_enabled') ?? false;
 
-    if (pinEnabled) {
-      return LockScreen(
-        onUnlock: () {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => SplashPage(toggleTheme: themeProvider.toggleTheme),
-            ),
-          );
-        },
-      );
-    } else {
-      return SplashPage(toggleTheme: themeProvider.toggleTheme);
-    }
-  },
-),
-
-
+              if (pinEnabled) {
+                return LockScreen(
+                  onUnlock: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SplashPage(
+                            toggleTheme: themeProvider.toggleTheme),
+                      ),
+                    );
+                  },
+                );
+              } else {
+                return SplashPage(toggleTheme: themeProvider.toggleTheme);
+              }
+            },
+          ),
         );
       },
     );
   }
 }
-

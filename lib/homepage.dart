@@ -9,6 +9,7 @@ import 'profile_page.dart';
 import 'settings_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lottie/lottie.dart';
+import 'package:path_provider/path_provider.dart';
 
 class HomePage extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -27,6 +28,13 @@ class _HomePageState extends State<HomePage> {
   List<Map<String, dynamic>> _filteredDiaries = [];
   Set<int> _expandedCardIds = {};
 
+Future<File?> _loadProfileImage() async {
+  final dir = await getApplicationDocumentsDirectory();
+  final path = '${dir.path}/profile.png';
+  final file = File(path);
+  return file.existsSync() ? file : null;
+}
+
 Future<void> _toggleFavorite(int id, bool isCurrentlyFavorite) async {
   await SQLHelper.toggleFavorite(id, !isCurrentlyFavorite);
   _refreshDiaries(); 
@@ -36,10 +44,10 @@ Future<void> _toggleFavorite(int id, bool isCurrentlyFavorite) async {
 
 
   String _username = 'Guest';
-  String? _profileImagePath;
   bool _isLoading = true;
   bool _showFavoritesOnly = false;
   int _selectedIndex = 0;
+  bool _showAllDiaries = false;
 
   final Map<String, String> _emojiMap = {
     'happy': '😊',
@@ -60,7 +68,6 @@ Future<void> _toggleFavorite(int id, bool isCurrentlyFavorite) async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _username = prefs.getString('username') ?? 'Guest';
-      _profileImagePath = prefs.getString('profileImagePath');
     });
   }
 
@@ -130,7 +137,7 @@ void _filterDiaries(String query) {
 Widget build(BuildContext context) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
   final selectedColor = isDark ? const Color(0xFF1B1E21) : const Color(0xFFFDAD4CF);
-
+  
   return Scaffold(
     drawer: _buildDrawer(isDark),
     appBar: _buildAppBar(),
@@ -155,7 +162,7 @@ Widget build(BuildContext context) {
         onChanged: _filterDiaries,
       ),
     ),
-    // ❤️ Favorites Toggle
+
     Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -347,30 +354,65 @@ void _showForm(int? id) {
 
 
 
-  Widget _buildDiaryList() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    } else if (_filteredDiaries.isEmpty) {
-      return const Center(child: Text("No entries yet."));
-    } else {
-      return RefreshIndicator(
-        onRefresh: _refreshDiaries,
-        child: ListView.builder(
-          itemCount: _filteredDiaries.length,
-          padding: const EdgeInsets.only(bottom: 80),
-          itemBuilder: (_, index) {
-            final diary = _filteredDiaries[index];
-            final time = DateFormat('dd MMM yyyy, hh:mm a')
-                .format(DateTime.parse(diary['createdAt']));
-            final mood = diary['feeling'].toString().toLowerCase();
-            final borderColor = _getMoodBorderColor(context, mood);
-            final isExpanded = _expandedCardIds.contains(diary['id']);
-            return _buildDiaryCard(diary, time, borderColor, isExpanded);
-          },
+Widget _buildDiaryList() {
+  if (_isLoading) {
+    return const Center(child: CircularProgressIndicator());
+  } else if (_filteredDiaries.isEmpty) {
+    return const Center(child: Text("No entries yet."));
+  } else {
+    final displayList = _showAllDiaries ? _filteredDiaries : _filteredDiaries.take(3).toList();
+
+    return Column(
+      children: [
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _refreshDiaries,
+            child: ListView.builder(
+              itemCount: displayList.length,
+              padding: const EdgeInsets.only(bottom: 80),
+              itemBuilder: (_, index) {
+                final diary = displayList[index];
+                final time = DateFormat('dd MMM yyyy, hh:mm a')
+                    .format(DateTime.parse(diary['createdAt']));
+                final mood = diary['feeling'].toString().toLowerCase();
+                final borderColor = _getMoodBorderColor(context, mood);
+                final isExpanded = _expandedCardIds.contains(diary['id']);
+                return _buildDiaryCard(diary, time, borderColor, isExpanded);
+              },
+            ),
+          ),
         ),
-      );
-    }
+        if (_filteredDiaries.length > 2)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: TextButton.icon(
+  style: TextButton.styleFrom(
+    backgroundColor: Theme.of(context).cardColor.withOpacity(0.4),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+  ),
+  icon: Icon(
+    _showAllDiaries ? Icons.expand_less : Icons.expand_more,
+    color: Theme.of(context).iconTheme.color,
+  ),
+  label: Text(
+    _showAllDiaries ? "Show less" : "See all entries",
+    style: GoogleFonts.quicksand(
+      fontWeight: FontWeight.w500,
+      color: Theme.of(context).textTheme.bodyLarge?.color,
+    ),
+  ),
+  onPressed: () {
+    setState(() => _showAllDiaries = !_showAllDiaries);
+  },
+),
+
+          ),
+      ],
+    );
   }
+}
+
 
 Widget _buildDiaryCard(Map<String, dynamic> diary, String time, Color borderColor, bool isExpanded) {
   final id = diary['id'];
@@ -609,6 +651,10 @@ Widget _buildDiaryCard(Map<String, dynamic> diary, String time, Color borderColo
     );
   }
 
+  
+
+  
+
   AppBar _buildAppBar() {
     return AppBar(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -763,44 +809,55 @@ Widget _buildAddButton(Color color) {
 
 
   Drawer _buildDrawer(bool isDark) {
-    return Drawer(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          DrawerHeader(
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFFFDAD4CF) : const Color(0xFF1B1E21),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundImage: _profileImagePath != null &&
-                      File(_profileImagePath!).existsSync()
-                    ? FileImage(File(_profileImagePath!))
-                    : const AssetImage("assets/images/profile.jpeg") as ImageProvider,
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Hi, $_username!",
-                      style: GoogleFonts.quicksand(
-                        fontSize: 18, fontWeight: FontWeight.bold,
-                        color: isDark ? const Color(0xFF1B1E21) : Colors.white,
-                      )),
-                    Text("Welcome back!",
-                      style: GoogleFonts.quicksand(
-                        fontSize: 14,
-                        color: isDark ? const Color(0xFF1B1E21) : Colors.white,
-                      )),
-                  ],
-                ),
-              ],
-            ),
+  return Drawer(
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    child: ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        DrawerHeader(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFFFDAD4CF) : const Color(0xFF1B1E21),
           ),
+          child: Row(
+            children: [
+              FutureBuilder<File?>(
+                future: _loadProfileImage(),
+                builder: (context, snapshot) {
+                  final file = snapshot.data;
+                  return CircleAvatar(
+                    radius: 30,
+                    backgroundImage: file != null
+                        ? FileImage(file)
+                        : const AssetImage("assets/images/profile.jpeg")
+                            as ImageProvider,
+                  );
+                },
+              ),
+              const SizedBox(width: 12),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Hi, $_username!",
+                    style: GoogleFonts.quicksand(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? const Color(0xFF1B1E21) : Colors.white,
+                    ),
+                  ),
+                  Text(
+                    "Welcome back!",
+                    style: GoogleFonts.quicksand(
+                      fontSize: 14,
+                      color: isDark ? const Color(0xFF1B1E21) : Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
           ListTile(
             leading: const Icon(Icons.person),
             title: Text("Profile", style: GoogleFonts.quicksand()),
