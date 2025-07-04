@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'sql_helper.dart';
@@ -218,25 +219,35 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildInfoTile(String title, String value) {
     final theme = Theme.of(context);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.brightness == Brightness.dark ? const Color(0xFFDAD4CF) : const Color(0xFF1B1E21),
-          width: 2.5,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          decoration: BoxDecoration(
+            color: theme.brightness == Brightness.dark
+                ? Colors.white.withOpacity(0.05)
+                : Colors.white.withOpacity(0.6),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: theme.brightness == Brightness.dark
+                  ? const Color(0xFFDAD4CF)
+                  : const Color(0xFF1B1E21),
+              width: 2.5,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(title, style: GoogleFonts.quicksand(fontSize: 16)),
+              Text(value,
+                  style: GoogleFonts.quicksand(
+                      fontSize: 16, fontWeight: FontWeight.w600)),
+            ],
+          ),
         ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: GoogleFonts.quicksand(fontSize: 16)),
-          Text(value,
-              style: GoogleFonts.quicksand(
-                  fontSize: 16, fontWeight: FontWeight.w600)),
-        ],
       ),
     );
   }
@@ -258,13 +269,31 @@ class _ProfilePageState extends State<ProfilePage> {
           child: Image.asset(gifPath, height: 140, fit: BoxFit.cover),
         ),
         const SizedBox(height: 14),
-        Text(
-          quote,
-          textAlign: TextAlign.center,
-          style: GoogleFonts.quicksand(
-            fontSize: 14,
-            fontStyle: FontStyle.italic,
-            color: textColor?.withOpacity(0.75),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.brightness == Brightness.dark
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.white.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.2),
+                ),
+              ),
+              child: Text(
+                quote,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.quicksand(
+                  fontSize: 14,
+                  fontStyle: FontStyle.italic,
+                  color: textColor?.withOpacity(0.75),
+                ),
+              ),
+            ),
           ),
         ),
       ],

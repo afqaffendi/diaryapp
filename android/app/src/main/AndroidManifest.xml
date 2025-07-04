@@ -9,7 +9,7 @@
 
 
     <application
-        android:label="diaryapp"
+        android:label="Moodie"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
