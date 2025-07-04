@@ -38,6 +38,7 @@ Future<void> _toggleFavorite(int id, bool isCurrentlyFavorite) async {
   String _username = 'Guest';
   String? _profileImagePath;
   bool _isLoading = true;
+  bool _showFavoritesOnly = false;
   int _selectedIndex = 0;
 
   final Map<String, String> _emojiMap = {
@@ -84,33 +85,18 @@ void _filterDiaries(String query) {
         .format(DateTime.parse(entry['createdAt']))
         .toLowerCase();
 
-    return desc.contains(lowerQuery) ||
-           mood.contains(lowerQuery) ||
-           emoji.contains(lowerQuery) ||
-           createdAt.contains(lowerQuery);
+    final matchesQuery = desc.contains(lowerQuery) ||
+        mood.contains(lowerQuery) ||
+        emoji.contains(lowerQuery) ||
+        createdAt.contains(lowerQuery);
+
+    final isFav = entry['isFavorite'] == 1;
+    return _showFavoritesOnly ? matchesQuery && isFav : matchesQuery;
   }).toList();
 
   setState(() => _filteredDiaries = filtered);
 }
 
-
-  int _calculateStreak() {
-    final now = DateTime.now();
-    final entryDates = _diaries.map((e) => DateFormat('yyyy-MM-dd')
-        .format(DateTime.parse(e['createdAt']))).toSet();
-
-    int streak = 0;
-    for (int i = 0; i < 30; i++) {
-      final date = now.subtract(Duration(days: i));
-      final formatted = DateFormat('yyyy-MM-dd').format(date);
-      if (entryDates.contains(formatted)) {
-        streak++;
-      } else {
-        break;
-      }
-    }
-    return streak;
-  }
 
   void _onNavTap(int index) {
     if (index == 1) {
@@ -169,11 +155,38 @@ Widget build(BuildContext context) {
         onChanged: _filterDiaries,
       ),
     ),
+    // ❤️ Favorites Toggle
+    Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          TextButton.icon(
+            icon: Icon(
+              _showFavoritesOnly ? Icons.favorite : Icons.favorite_border,
+              color: _showFavoritesOnly ? Colors.red : Colors.grey,
+            ),
+            label: Text(
+              _showFavoritesOnly ? 'Showing Favorites' : 'All Entries',
+              style: GoogleFonts.quicksand(
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            onPressed: () {
+              setState(() {
+                _showFavoritesOnly = !_showFavoritesOnly;
+                _filterDiaries(_searchController.text);
+              });
+            },
+          ),
+        ],
+      ),
+    ),
     _buildStreakWidget(),
     Expanded(child: _buildDiaryList()),
   ],
 ),
-
   );
 }
 
@@ -693,6 +706,51 @@ Widget _buildAddButton(Color color) {
     ),
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+  // Calculates the current diary streak (consecutive days with entries)
+  int _calculateStreak() {
+    if (_diaries.isEmpty) return 0;
+
+    // Extract and sort unique entry dates (ignore time)
+    final dates = _diaries
+        .map<DateTime>((d) => DateTime.parse(d['createdAt']))
+        .map((dt) => DateTime(dt.year, dt.month, dt.day))
+        .toSet()
+        .toList()
+      ..sort((a, b) => b.compareTo(a)); // descending
+
+    int streak = 1;
+    for (int i = 0; i < dates.length - 1; i++) {
+      final diff = dates[i].difference(dates[i + 1]).inDays;
+      if (diff == 1) {
+        streak++;
+      } else if (diff > 1) {
+        break;
+      }
+    }
+
+    // Check if the latest entry is today, else streak is 0
+    final today = DateTime.now();
+    final latest = dates.first;
+    if (!(latest.year == today.year &&
+        latest.month == today.month &&
+        latest.day == today.day)) {
+      return 0;
+    }
+
+    return streak;
+  }
+
 
 
 
