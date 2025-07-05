@@ -147,22 +147,40 @@ Widget build(BuildContext context) {
     body: Column(
   children: [
     Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: TextField(
-        controller: _searchController,
-        decoration: InputDecoration(
-          hintText: 'Search your diary...',
-          prefixIcon: const Icon(Icons.search),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          filled: true,
-          fillColor: Theme.of(context).cardColor,
+  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+  child: TextField(
+    controller: _searchController,
+    decoration: InputDecoration(
+      hintText: 'Search your diary...',
+      prefixIcon: const Icon(Icons.search),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+          width: 2,
         ),
-        onChanged: _filterDiaries,
       ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.4),
+          width: 2,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: BorderSide(
+          color: Theme.of(context).colorScheme.primary,
+          width: 2.5,
+        ),
+      ),
+      filled: true,
+      fillColor: Theme.of(context).cardColor,
     ),
+    onChanged: _filterDiaries,
+  ),
+),
+
 
     Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -203,45 +221,51 @@ Widget build(BuildContext context) {
 Widget _buildMoodPicker(Function setModalState) {
   return SizedBox(
     height: 80,
-    child: ListView(
+    child: ListView.separated(
       scrollDirection: Axis.horizontal,
-      children: _emojiMap.entries.map((entry) {
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      itemBuilder: (context, index) {
+        final entry = _emojiMap.entries.elementAt(index);
         final selected = _feelingController.text == entry.key;
         return GestureDetector(
           onTap: () => setModalState(() {
             _feelingController.text = entry.key;
           }),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.symmetric(horizontal: 8),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
                 color: selected
-                    ? const Color(0xFFF1B1E21)
+                    ? Theme.of(context).colorScheme.primary
                     : Colors.grey.withOpacity(0.3),
-                width: 2,
+                width: 2.5,
               ),
               color: selected
-                  ? Colors.grey.withOpacity(0.3)
+                  ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
                   : Colors.transparent,
             ),
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             child: Center(
               child: Text(entry.value, style: const TextStyle(fontSize: 24)),
             ),
           ),
         );
-      }).toList(),
+      },
+      separatorBuilder: (_, __) => const SizedBox(width: 8),
+      itemCount: _emojiMap.length,
     ),
   );
 }
 
 
-void _showForm(int? id) {
-  final isDark = Theme.of(context).brightness == Brightness.dark;
 
-  if (id != null) {
+void _showForm(int? id) {
+  final isEditing = id != null;
+  final theme = Theme.of(context);
+
+  if (isEditing) {
     final existing = _diaries.firstWhere((e) => e['id'] == id);
     _feelingController.text = existing['feeling'];
     _descriptionController.text = existing['description'];
@@ -267,7 +291,7 @@ void _showForm(int? id) {
             ),
             child: Container(
               decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
+                color: theme.cardColor,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(24),
                 ),
@@ -277,7 +301,7 @@ void _showForm(int? id) {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    id == null ? "Spill your vibes." : "Edit your vibes.",
+                    isEditing ? "Edit your vibes." : "Spill your vibes.",
                     style: GoogleFonts.quicksand(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -285,25 +309,37 @@ void _showForm(int? id) {
                   ),
                   const SizedBox(height: 12),
                   _buildMoodPicker(setModalState),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   TextField(
                     controller: _descriptionController,
-                    maxLines: 2,
+                    maxLines: 3,
                     decoration: InputDecoration(
                       hintText: 'Describe your vibes...',
                       filled: true,
-                      fillColor: Theme.of(context).cardColor,
-                      border: OutlineInputBorder(
+                      fillColor: theme.cardColor,
+                      enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.primary.withOpacity(0.4),
+                          width: 1.5,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.primary,
+                          width: 2,
+                        ),
                       ),
                     ),
+                    style: GoogleFonts.quicksand(fontSize: 15),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: () async {
                       final feeling = _feelingController.text.trim();
                       final desc = _descriptionController.text.trim();
+
                       if (feeling.isEmpty || desc.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text("Complete both fields")),
@@ -311,21 +347,18 @@ void _showForm(int? id) {
                         return;
                       }
 
-                      if (id == null) {
-                        await SQLHelper.createDiary(feeling, desc, DateTime.now());
-                      } else {
+                      if (isEditing) {
                         await SQLHelper.updateDiary(id, feeling, desc);
+                      } else {
+                        await SQLHelper.createDiary(feeling, desc, DateTime.now());
                       }
 
                       Navigator.pop(context);
                       _refreshDiaries();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark
-                          ? const Color(0xFFFDAD4CF)
-                          : const Color(0xFFF1B1E21),
-                      foregroundColor:
-                          isDark ? Colors.black : Colors.white,
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
                       shape: const CircleBorder(),
                       padding: const EdgeInsets.all(18),
                       elevation: 0,
@@ -341,7 +374,7 @@ void _showForm(int? id) {
             child: SizedBox(
               height: 90,
               child: Image.asset(
-                'assets/images/cat.gif', // make sure this exists
+                'assets/images/cat.gif',
                 fit: BoxFit.contain,
               ),
             ),
@@ -351,6 +384,7 @@ void _showForm(int? id) {
     ),
   );
 }
+
 
 
 
@@ -526,19 +560,24 @@ Widget _buildDiaryCard(Map<String, dynamic> diary, String time, Color borderColo
             AnimatedCrossFade(
   firstChild: Text(
     description,
-    style: GoogleFonts.quicksand(),
+    style: GoogleFonts.quicksand(fontSize: 14),
     maxLines: 2,
     overflow: TextOverflow.ellipsis,
   ),
-  secondChild: Text(
-    description,
-    style: GoogleFonts.quicksand(),
+  secondChild: Padding(
+    padding: const EdgeInsets.only(top: 4),
+    child: Text(
+      description,
+      style: GoogleFonts.quicksand(fontSize: 14),
+    ),
   ),
-  crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-  duration: const Duration(milliseconds: 300),
-  firstCurve: Curves.easeInOut,
-  secondCurve: Curves.easeInOut,
+  crossFadeState:
+      isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+  duration: const Duration(milliseconds: 250),
+  firstCurve: Curves.easeOut,
+  secondCurve: Curves.easeIn,
 ),
+
 
             const SizedBox(height: 12),
 
@@ -604,18 +643,14 @@ Widget _buildDiaryCard(Map<String, dynamic> diary, String time, Color borderColo
 
 
 
-
-
-
-
-
   Widget _buildStreakWidget() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = Theme.of(context).cardColor;
     final streak = _calculateStreak();
-    final message = streak > 0
-        ? " $streak-day streak!"
-        : "No streak yet. Let's start today!";
+   final message = streak > 0
+    ? "You're on a $streak-day streak, $_username!"
+    : "Let's start your first vibe today, $_username!";
+
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -631,8 +666,9 @@ Widget _buildDiaryCard(Map<String, dynamic> diary, String time, Color borderColo
       child: Row(
         children: [
           SizedBox(
-            height: 70,
-            width: 70,
+            height: 95,
+            width: 95,
+            
             child: Lottie.asset(
               streak > 0
                   ? 'assets/lottie/streak.json'
@@ -640,7 +676,7 @@ Widget _buildDiaryCard(Map<String, dynamic> diary, String time, Color borderColo
               fit: BoxFit.contain,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           Expanded(
             child: Text(
               message,
@@ -809,7 +845,7 @@ Widget _buildAddButton(Color color) {
 
 
 
-  Drawer _buildDrawer(bool isDark) {
+Drawer _buildDrawer(bool isDark) {
   return Drawer(
     backgroundColor: Theme.of(context).scaffoldBackgroundColor,
     child: ListView(
@@ -859,19 +895,32 @@ Widget _buildAddButton(Color color) {
             ],
           ),
         ),
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: Text("Profile", style: GoogleFonts.quicksand()),
-            onTap: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ProfilePage()),
-              );
-              _loadUserInfo();
-            },
+
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: SizedBox(
+            height: 130,
+            child: Lottie.asset(
+              'assets/lottie/drawer_cat.json', // or any other animation
+              fit: BoxFit.contain,
+            ),
           ),
-          ListTile(
-  leading: const Icon(Icons.format_quote),
+        ),
+
+        const Divider(indent: 16, endIndent: 16, thickness: 1),
+        ListTile(
+  leading: Icon(LucideIcons.user, size: 22), // Profile
+  title: Text("Profile", style: GoogleFonts.quicksand()),
+  onTap: () async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ProfilePage()),
+    );
+    _loadUserInfo(); // Refresh on return
+  },
+),
+ListTile(
+  leading: Icon(LucideIcons.quote, size: 22), // Quotes
   title: Text("Quotes", style: GoogleFonts.quicksand()),
   onTap: () {
     Navigator.push(
@@ -880,22 +929,21 @@ Widget _buildAddButton(Color color) {
     );
   },
 ),
-
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: Text("Settings", style: GoogleFonts.quicksand()),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => SettingsPage(toggleTheme: widget.toggleTheme),
-                ),
-
-              );
-            },
-          ),
-        ],
+ListTile(
+  leading: Icon(LucideIcons.settings, size: 22), // Settings
+  title: Text("Settings", style: GoogleFonts.quicksand()),
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SettingsPage(toggleTheme: widget.toggleTheme),
       ),
     );
-  }
+  },
+),
+
+      ],
+    ),
+  );
+}
 }

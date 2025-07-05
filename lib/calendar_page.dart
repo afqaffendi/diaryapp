@@ -70,115 +70,129 @@ class _CalendarPageState extends State<CalendarPage> {
         theme.colorScheme.outline.withOpacity(0.6);
   }
 
-  void _showForm(int? id) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (id != null) {
-      final existing = _filteredDiaries.firstWhere((e) => e['id'] == id);
-      _feelingController.text = existing['feeling'];
-      _descriptionController.text = existing['description'];
-    } else {
-      _feelingController.clear();
-      _descriptionController.clear();
-    }
+void _showForm(int? id) {
+  final isEditing = id != null;
+  final theme = Theme.of(context);
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => StatefulBuilder(
-        builder: (modalContext, setModalState) => Stack(
-          alignment: Alignment.topCenter,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(
-                top: 70,
-                left: 16,
-                right: 16,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(24),
-                  ),
+  if (isEditing) {
+    final existing = _filteredDiaries.firstWhere((e) => e['id'] == id);
+    _feelingController.text = existing['feeling'];
+    _descriptionController.text = existing['description'];
+  } else {
+    _feelingController.clear();
+    _descriptionController.clear();
+  }
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => StatefulBuilder(
+      builder: (modalContext, setModalState) => Stack(
+        alignment: Alignment.topCenter,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(
+              top: 70,
+              left: 16,
+              right: 16,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: theme.cardColor,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
                 ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text("Spill your vibes.",
-                        style: GoogleFonts.quicksand(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        )),
-                    const SizedBox(height: 12),
-                    _buildMoodPicker(setModalState),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _descriptionController,
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        hintText: 'Describe your vibes...',
-                        filled: true,
-                        fillColor: Theme.of(context).cardColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    isEditing ? "Edit your vibes." : "Spill your vibes.",
+                    style: GoogleFonts.quicksand(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildMoodPicker(setModalState),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _descriptionController,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: 'Describe your vibes...',
+                      filled: true,
+                      fillColor: theme.cardColor,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.primary.withOpacity(0.4),
+                          width: 1.5,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.primary,
+                          width: 2,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () async {
-                        final feeling = _feelingController.text.trim();
-                        final desc = _descriptionController.text.trim();
-                        if (feeling.isEmpty || desc.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text("Complete both fields")));
-                          return;
-                        }
+                    style: GoogleFonts.quicksand(fontSize: 15),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final feeling = _feelingController.text.trim();
+                      final desc = _descriptionController.text.trim();
+                      if (feeling.isEmpty || desc.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Complete both fields")),
+                        );
+                        return;
+                      }
 
-                        if (id == null) {
-                          await SQLHelper.createDiary(feeling, desc, _selectedDay ?? DateTime.now());
-                        } else {
-                          await SQLHelper.updateDiary(id, feeling, desc);
-                        }
+                      if (isEditing) {
+                        await SQLHelper.updateDiary(id, feeling, desc);
+                      } else {
+                        await SQLHelper.createDiary(feeling, desc, _selectedDay ?? DateTime.now());
+                      }
 
-                        Navigator.pop(context);
-                        _loadDiaries();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isDark
-                            ? const Color(0xFFFDAD4CF)
-                            : const Color(0xFFF1B1E21),
-                        foregroundColor:
-                            isDark ? Colors.black : Colors.white,
-                        shape: const CircleBorder(),
-                        padding: const EdgeInsets.all(18),
-                        elevation: 0,
-                      ),
-                      child: const Icon(Icons.check),
+                      Navigator.pop(context);
+                      _loadDiaries();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                      shape: const CircleBorder(),
+                      padding: const EdgeInsets.all(18),
+                      elevation: 0,
                     ),
-                  ],
-                ),
+                    child: const Icon(Icons.check),
+                  ),
+                ],
               ),
             ),
-            Positioned(
-              top: 18,
-              child: SizedBox(
-                height: 90,
-                child: Image.asset('assets/images/cat.gif',
-                    fit: BoxFit.contain),
+          ),
+          Positioned(
+            top: 18,
+            child: SizedBox(
+              height: 90,
+              child: Image.asset(
+                'assets/images/cat.gif',
+                fit: BoxFit.contain,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _buildMoodPicker(Function setModalState) {
     return SizedBox(
@@ -359,65 +373,65 @@ class _CalendarPageState extends State<CalendarPage> {
                                 const SnackBar(content: Text("Entry deleted")),
                               );
                             },
-                           child: GestureDetector(
-  onTap: () => _showForm(diary['id']),
-  child: Container(
-    key: Key("diary-${diary['id']}"),
-    margin: const EdgeInsets.symmetric(vertical: 8),
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      color: theme.cardColor,
-      border: Border.all(
-        color: borderColor,
-        width: 3,
-      ),
-      borderRadius: BorderRadius.circular(18),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: borderColor.withOpacity(0.15),
-              child: Text(
-                _emojiMap[mood] ?? '📝',
-                style: const TextStyle(fontSize: 20),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                diary['feeling'],
-                style: GoogleFonts.quicksand(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                  color: textColor,
-                ),
-              ),
-            ),
-            Text(
-              time,
-              style: GoogleFonts.quicksand(
-                fontSize: 13,
-                color: textColor.withOpacity(0.5),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          diary['description'],
-          style: GoogleFonts.quicksand(
-            fontSize: 14,
-            color: textColor.withOpacity(0.85),
-          ),
-        ),
-      ],
-    ),
-  ),
-),
+                            child: GestureDetector(
+                              onTap: () => _showForm(diary['id']),
+                              child: Container(
+                                key: Key("diary-${diary['id']}"),
+                                margin: const EdgeInsets.symmetric(vertical: 8),
+                                padding: const EdgeInsets.all(18),
+                                decoration: BoxDecoration(
+                                  color: theme.cardColor,
+                                  border: Border.all(
+                                    color: borderColor,
+                                    width: 3,
+                                  ),
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 18,
+                                          backgroundColor: borderColor.withOpacity(0.15),
+                                          child: Text(
+                                            _emojiMap[mood] ?? '📝',
+                                            style: const TextStyle(fontSize: 20),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            diary['feeling'],
+                                            style: GoogleFonts.quicksand(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 18,
+                                              color: textColor,
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          time,
+                                          style: GoogleFonts.quicksand(
+                                            fontSize: 13,
+                                            color: textColor.withOpacity(0.5),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      diary['description'],
+                                      style: GoogleFonts.quicksand(
+                                        fontSize: 14,
+                                        color: textColor.withOpacity(0.85),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           );
                         },
                       ),
@@ -431,9 +445,10 @@ class _CalendarPageState extends State<CalendarPage> {
         shape: const CircleBorder(),
         backgroundColor:
             isDark ? const Color(0xFFFDAD4CF) : const Color(0xFFF1B1E21),
-        child: Icon(Icons.add,
-        
-            color: isDark ? const Color(0xFFF1B1E21) : Colors.white),
+        child: Icon(
+          Icons.add,
+          color: isDark ? const Color(0xFFF1B1E21) : Colors.white,
+        ),
       ),
     );
   }

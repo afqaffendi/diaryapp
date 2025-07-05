@@ -129,8 +129,8 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                 // Cozy Lottie loading animation
                 Lottie.asset(
                   'assets/lottie/loading_paw.json', // Make sure this file exists
-                  width: 60,
-                  height: 60,
+                  width: 80,
+                  height: 80,
                   fit: BoxFit.contain,
                 ),
               ],
