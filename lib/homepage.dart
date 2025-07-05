@@ -7,6 +7,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'profile_page.dart';
 import 'settings_page.dart';
+import 'quotes_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lottie/lottie.dart';
 import 'package:path_provider/path_provider.dart';
@@ -553,7 +554,7 @@ Widget _buildDiaryCard(Map<String, dynamic> diary, String time, Color borderColo
   tooltip: "Favorite",
   onPressed: () {
     final isFav = diary['isFavorite'] == 1;
-    _toggleFavorite(diary['id'], isFav); // This must call your method
+    _toggleFavorite(diary['id'], isFav); 
   },
 ),
 
@@ -870,6 +871,17 @@ Widget _buildAddButton(Color color) {
             },
           ),
           ListTile(
+  leading: const Icon(Icons.format_quote),
+  title: Text("Quotes", style: GoogleFonts.quicksand()),
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const QuotesPage()),
+    );
+  },
+),
+
+          ListTile(
             leading: const Icon(Icons.settings),
             title: Text("Settings", style: GoogleFonts.quicksand()),
             onTap: () {
@@ -878,6 +890,7 @@ Widget _buildAddButton(Color color) {
                 MaterialPageRoute(
                   builder: (_) => SettingsPage(toggleTheme: widget.toggleTheme),
                 ),
+
               );
             },
           ),
